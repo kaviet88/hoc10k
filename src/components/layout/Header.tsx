@@ -1,0 +1,131 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { 
+  BookOpen, 
+  FileText, 
+  GraduationCap, 
+  Home, 
+  Menu, 
+  ShoppingCart, 
+  Gamepad2, 
+  Bell,
+  User,
+  ChevronDown,
+  Search,
+  X
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+
+const navItems = [
+  { icon: Home, label: "Trang chủ", href: "/" },
+  { icon: BookOpen, label: "Bài học", href: "/lessons" },
+  { icon: GraduationCap, label: "Luyện thi", href: "/practice" },
+  { icon: FileText, label: "Tài liệu", href: "/documents" },
+  { icon: FileText, label: "Thi thử", href: "/exams" },
+  { icon: ShoppingCart, label: "Mua chương trình", href: "/purchase" },
+  { icon: Gamepad2, label: "Trò chơi", href: "/games" },
+];
+
+export function Header() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  return (
+    <header className="sticky top-0 z-50 bg-card border-b border-border shadow-card">
+      <div className="container mx-auto">
+        <div className="flex items-center justify-between h-16 px-4">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2 group">
+            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-primary">
+              <span className="text-xl font-bold text-primary-foreground">📚</span>
+            </div>
+            <span className="text-xl font-bold text-primary hidden sm:block">Học 10k</span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex items-center gap-1">
+            {navItems.map((item) => (
+              <Link key={item.href} to={item.href}>
+                <Button variant="nav" size="sm" className="gap-1.5">
+                  <item.icon className="w-4 h-4" />
+                  {item.label}
+                </Button>
+              </Link>
+            ))}
+          </nav>
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-2">
+            {/* Search */}
+            <div className="hidden md:flex items-center">
+              {searchOpen ? (
+                <div className="flex items-center gap-2 animate-fade-in">
+                  <Input 
+                    placeholder="Tìm kiếm..." 
+                    className="w-48 h-9"
+                    autoFocus
+                  />
+                  <Button variant="ghost" size="icon" onClick={() => setSearchOpen(false)}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="ghost" size="icon" onClick={() => setSearchOpen(true)}>
+                  <Search className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* Notifications */}
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="w-4 h-4" />
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                3
+              </span>
+            </Button>
+
+            {/* User Menu */}
+            <Button variant="outline" size="sm" className="gap-2 hidden sm:flex">
+              <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center">
+                <User className="w-3 h-3 text-accent-foreground" />
+              </div>
+              <span>Mon</span>
+              <ChevronDown className="w-3 h-3" />
+            </Button>
+
+            {/* Mobile Menu Toggle */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="lg:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        {mobileMenuOpen && (
+          <nav className="lg:hidden py-4 px-4 border-t border-border animate-fade-in">
+            <div className="flex flex-col gap-1">
+              {navItems.map((item) => (
+                <Link 
+                  key={item.href} 
+                  to={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Button variant="ghost" className="w-full justify-start gap-2">
+                    <item.icon className="w-4 h-4" />
+                    {item.label}
+                  </Button>
+                </Link>
+              ))}
+            </div>
+          </nav>
+        )}
+      </div>
+    </header>
+  );
+}
