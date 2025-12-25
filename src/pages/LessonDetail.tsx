@@ -4,9 +4,12 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { LessonMindMap } from "@/components/lessons/LessonMindMap";
+import { LessonQuiz } from "@/components/lessons/LessonQuiz";
 import { 
   ChevronDown, 
   Play, 
@@ -25,7 +28,9 @@ import {
   Volume2,
   VolumeX,
   Maximize,
-  Settings
+  Settings,
+  Video,
+  HelpCircle
 } from "lucide-react";
 
 interface Lesson {
@@ -389,122 +394,157 @@ const LessonDetail = () => {
               <div className="p-6">
                 <h2 className="text-xl font-bold text-foreground mb-6">{activeLesson?.lesson_title || "Bài học"}</h2>
                 
-                {/* Video Player */}
-                <div className="rounded-xl overflow-hidden bg-foreground mb-6 relative group">
-                  <div className="aspect-video relative">
-                    <video
-                      className="w-full h-full object-cover"
-                      poster={activeLesson?.thumbnail_url || "https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=800&auto=format&fit=crop"}
-                    >
-                      <source src={activeLesson?.video_url || "https://www.w3schools.com/html/mov_bbb.mp4"} type="video/mp4" />
-                      Your browser does not support the video tag.
-                    </video>
-                    
-                    {/* Play button overlay */}
-                    {!isPlaying && (
-                      <button 
-                        onClick={() => setIsPlaying(true)}
-                        className="absolute inset-0 flex items-center justify-center bg-black/30 transition-opacity group-hover:bg-black/40"
-                      >
-                        <div className="w-20 h-20 rounded-full bg-white/90 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                          <Play className="w-8 h-8 text-foreground ml-1" fill="currentColor" />
-                        </div>
-                      </button>
-                    )}
-                  </div>
-                  
-                  {/* Video Controls */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {/* Progress bar */}
-                    <div className="w-full h-1 bg-white/30 rounded-full mb-3 cursor-pointer">
-                      <div className="h-full bg-primary rounded-full w-1/3 relative">
-                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow" />
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <button 
-                          onClick={() => setIsPlaying(!isPlaying)}
-                          className="text-white hover:text-primary transition-colors"
+                {/* Lesson Tabs */}
+                <Tabs defaultValue="video" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3 mb-6">
+                    <TabsTrigger value="video" className="gap-2">
+                      <Video className="w-4 h-4" />
+                      Video
+                    </TabsTrigger>
+                    <TabsTrigger value="mindmap" className="gap-2">
+                      <Brain className="w-4 h-4" />
+                      Sơ đồ tư duy
+                    </TabsTrigger>
+                    <TabsTrigger value="quiz" className="gap-2">
+                      <HelpCircle className="w-4 h-4" />
+                      Quiz
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Video Tab */}
+                  <TabsContent value="video" className="mt-0">
+                    {/* Video Player */}
+                    <div className="rounded-xl overflow-hidden bg-foreground mb-6 relative group">
+                      <div className="aspect-video relative">
+                        <video
+                          className="w-full h-full object-cover"
+                          poster={activeLesson?.thumbnail_url || "https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=800&auto=format&fit=crop"}
                         >
-                          {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                        </button>
-                        <button 
-                          onClick={() => setIsMuted(!isMuted)}
-                          className="text-white hover:text-primary transition-colors"
-                        >
-                          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                        </button>
-                        <span className="text-white text-sm">2:15 / 6:49</span>
+                          <source src={activeLesson?.video_url || "https://www.w3schools.com/html/mov_bbb.mp4"} type="video/mp4" />
+                          Your browser does not support the video tag.
+                        </video>
+                        
+                        {/* Play button overlay */}
+                        {!isPlaying && (
+                          <button 
+                            onClick={() => setIsPlaying(true)}
+                            className="absolute inset-0 flex items-center justify-center bg-black/30 transition-opacity group-hover:bg-black/40"
+                          >
+                            <div className="w-20 h-20 rounded-full bg-white/90 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                              <Play className="w-8 h-8 text-foreground ml-1" fill="currentColor" />
+                            </div>
+                          </button>
+                        )}
                       </div>
                       
-                      <div className="flex items-center gap-3">
-                        <button className="text-white hover:text-primary transition-colors">
-                          <Settings className="w-5 h-5" />
-                        </button>
-                        <button className="text-white hover:text-primary transition-colors">
-                          <Maximize className="w-5 h-5" />
-                        </button>
+                      {/* Video Controls */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* Progress bar */}
+                        <div className="w-full h-1 bg-white/30 rounded-full mb-3 cursor-pointer">
+                          <div className="h-full bg-primary rounded-full w-1/3 relative">
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow" />
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <button 
+                              onClick={() => setIsPlaying(!isPlaying)}
+                              className="text-white hover:text-primary transition-colors"
+                            >
+                              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                            </button>
+                            <button 
+                              onClick={() => setIsMuted(!isMuted)}
+                              className="text-white hover:text-primary transition-colors"
+                            >
+                              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                            </button>
+                            <span className="text-white text-sm">2:15 / 6:49</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <button className="text-white hover:text-primary transition-colors">
+                              <Settings className="w-5 h-5" />
+                            </button>
+                            <button className="text-white hover:text-primary transition-colors">
+                              <Maximize className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Lesson Content Card */}
-                <div className="rounded-xl overflow-hidden bg-gradient-to-br from-accent/10 to-success/10 p-4 mb-6">
-                  <div className="bg-card rounded-lg p-6 shadow-card">
-                    <h3 className="text-center text-lg font-bold text-primary mb-4">
-                      DANH TỪ ĐẾM ĐƯỢC & KHÔNG ĐẾM ĐƯỢC
-                    </h3>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="bg-accent/10 rounded-lg p-4">
-                        <h4 className="font-bold text-accent mb-3 text-center">Danh từ ĐẾM ĐƯỢC</h4>
-                        <div className="flex justify-center gap-4 mb-3">
-                          <div className="text-center">
-                            <span className="text-2xl">🍎</span>
-                            <p className="text-xs text-muted-foreground">1 apple</p>
+                    {/* Lesson Content Card */}
+                    <div className="rounded-xl overflow-hidden bg-gradient-to-br from-accent/10 to-success/10 p-4 mb-6">
+                      <div className="bg-card rounded-lg p-6 shadow-card">
+                        <h3 className="text-center text-lg font-bold text-primary mb-4">
+                          DANH TỪ ĐẾM ĐƯỢC & KHÔNG ĐẾM ĐƯỢC
+                        </h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="bg-accent/10 rounded-lg p-4">
+                            <h4 className="font-bold text-accent mb-3 text-center">Danh từ ĐẾM ĐƯỢC</h4>
+                            <div className="flex justify-center gap-4 mb-3">
+                              <div className="text-center">
+                                <span className="text-2xl">🍎</span>
+                                <p className="text-xs text-muted-foreground">1 apple</p>
+                              </div>
+                              <div className="text-center">
+                                <span className="text-2xl">📚</span>
+                                <p className="text-xs text-muted-foreground">2 books</p>
+                              </div>
+                              <div className="text-center">
+                                <span className="text-2xl">🐱</span>
+                                <p className="text-xs text-muted-foreground">3 cats</p>
+                              </div>
+                            </div>
+                            <ul className="text-sm space-y-1 text-muted-foreground">
+                              <li>• Đếm được bằng số</li>
+                              <li>• Có số ít - số nhiều</li>
+                              <li>• Dùng a / an</li>
+                            </ul>
                           </div>
-                          <div className="text-center">
-                            <span className="text-2xl">📚</span>
-                            <p className="text-xs text-muted-foreground">2 books</p>
-                          </div>
-                          <div className="text-center">
-                            <span className="text-2xl">🐱</span>
-                            <p className="text-xs text-muted-foreground">3 cats</p>
+                          <div className="bg-success/10 rounded-lg p-4">
+                            <h4 className="font-bold text-success mb-3 text-center">Danh từ KHÔNG ĐẾM ĐƯỢC</h4>
+                            <div className="flex justify-center gap-4 mb-3">
+                              <div className="text-center">
+                                <span className="text-2xl">💧</span>
+                                <p className="text-xs text-muted-foreground">water</p>
+                              </div>
+                              <div className="text-center">
+                                <span className="text-2xl">🥛</span>
+                                <p className="text-xs text-muted-foreground">milk</p>
+                              </div>
+                              <div className="text-center">
+                                <span className="text-2xl">🍚</span>
+                                <p className="text-xs text-muted-foreground">rice</p>
+                              </div>
+                            </div>
+                            <ul className="text-sm space-y-1 text-muted-foreground">
+                              <li>• Không đếm trực tiếp</li>
+                              <li>• Không có số nhiều</li>
+                              <li>• Không dùng a / an</li>
+                            </ul>
                           </div>
                         </div>
-                        <ul className="text-sm space-y-1 text-muted-foreground">
-                          <li>• Đếm được bằng số</li>
-                          <li>• Có số ít - số nhiều</li>
-                          <li>• Dùng a / an</li>
-                        </ul>
-                      </div>
-                      <div className="bg-success/10 rounded-lg p-4">
-                        <h4 className="font-bold text-success mb-3 text-center">Danh từ KHÔNG ĐẾM ĐƯỢC</h4>
-                        <div className="flex justify-center gap-4 mb-3">
-                          <div className="text-center">
-                            <span className="text-2xl">💧</span>
-                            <p className="text-xs text-muted-foreground">water</p>
-                          </div>
-                          <div className="text-center">
-                            <span className="text-2xl">🥛</span>
-                            <p className="text-xs text-muted-foreground">milk</p>
-                          </div>
-                          <div className="text-center">
-                            <span className="text-2xl">🍚</span>
-                            <p className="text-xs text-muted-foreground">rice</p>
-                          </div>
-                        </div>
-                        <ul className="text-sm space-y-1 text-muted-foreground">
-                          <li>• Không đếm trực tiếp</li>
-                          <li>• Không có số nhiều</li>
-                          <li>• Không dùng a / an</li>
-                        </ul>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </TabsContent>
+
+                  {/* Mind Map Tab */}
+                  <TabsContent value="mindmap" className="mt-0">
+                    <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl border border-border">
+                      <LessonMindMap lessonTitle={activeLesson?.lesson_title || "Bài học"} />
+                    </div>
+                  </TabsContent>
+
+                  {/* Quiz Tab */}
+                  <TabsContent value="quiz" className="mt-0">
+                    <div className="bg-gradient-to-br from-success/5 to-primary/5 rounded-xl border border-border">
+                      <LessonQuiz lessonTitle={activeLesson?.lesson_title || "Bài học"} />
+                    </div>
+                  </TabsContent>
+                </Tabs>
 
                 {/* Progress Indicator */}
                 <div className="flex items-center justify-center gap-2 mb-4">
