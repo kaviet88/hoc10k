@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Trash2, Edit, Save, X, Loader2 } from "lucide-react";
+import { Plus, Trash2, Edit, Save, X, Loader2, Upload, FileJson, FileSpreadsheet } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -37,8 +37,11 @@ export function QuizManager() {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [programId, setProgramId] = useState("1");
@@ -169,6 +172,80 @@ export function QuizManager() {
     }
   }
 
+  function parseCSV(text: string): any[] {
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return [];
+    
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const results: any[] = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim());
+      const obj: any = {};
+      headers.forEach((header, idx) => {
+        obj[header] = values[idx] || '';
+      });
+      results.push(obj);
+    }
+    return results;
+  }
+
+  async function handleFileImport(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    const text = await file.text();
+    let data: any[] = [];
+
+    try {
+      if (file.name.endsWith('.json')) {
+        const parsed = JSON.parse(text);
+        data = Array.isArray(parsed) ? parsed : [parsed];
+      } else if (file.name.endsWith('.csv')) {
+        data = parseCSV(text);
+      } else {
+        toast.error("Chỉ hỗ trợ file JSON hoặc CSV");
+        setImporting(false);
+        return;
+      }
+
+      // Transform and validate data
+      const questionsToInsert = data.map((item, idx) => ({
+        program_id: item.program_id || programId,
+        lesson_id: item.lesson_id || lessonId,
+        question: item.question,
+        options: item.options ? (typeof item.options === 'string' ? JSON.parse(item.options) : item.options) : [item.option1, item.option2, item.option3, item.option4].filter(Boolean),
+        correct_answer: parseInt(item.correct_answer) || 0,
+        explanation: item.explanation || null,
+        question_order: parseInt(item.question_order) || idx + 1,
+      })).filter(q => q.question && q.options.length > 0);
+
+      if (questionsToInsert.length === 0) {
+        toast.error("Không tìm thấy câu hỏi hợp lệ trong file");
+        setImporting(false);
+        return;
+      }
+
+      const { error } = await supabase.from("lesson_quizzes").insert(questionsToInsert);
+
+      if (error) {
+        toast.error("Lỗi khi import: " + error.message);
+        console.error(error);
+      } else {
+        toast.success(`Đã import ${questionsToInsert.length} câu hỏi`);
+        setImportDialogOpen(false);
+        fetchQuestions();
+      }
+    } catch (err) {
+      toast.error("Lỗi khi đọc file: " + (err as Error).message);
+      console.error(err);
+    }
+
+    setImporting(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
   return (
     <div className="space-y-6">
       {/* Filters and Add Button */}
@@ -290,6 +367,63 @@ export function QuizManager() {
                   Lưu
                 </Button>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Import Dialog */}
+        <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <Upload className="w-4 h-4" />
+              Import
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Import câu hỏi từ file</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label>Chương trình mặc định</Label>
+                <Input value={programId} onChange={(e) => setProgramId(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Bài học mặc định</Label>
+                <Input value={lessonId} onChange={(e) => setLessonId(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Chọn file (JSON hoặc CSV)</Label>
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json,.csv"
+                  onChange={handleFileImport}
+                  disabled={importing}
+                />
+              </div>
+              {importing && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Đang import...
+                </div>
+              )}
+              <Card className="bg-muted/50">
+                <CardContent className="pt-4 text-sm text-muted-foreground">
+                  <p className="font-medium mb-2">Định dạng file:</p>
+                  <div className="flex gap-4">
+                    <div className="flex items-center gap-1">
+                      <FileJson className="w-4 h-4" />
+                      <span>JSON</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <FileSpreadsheet className="w-4 h-4" />
+                      <span>CSV</span>
+                    </div>
+                  </div>
+                  <p className="mt-2">Các trường: question, options (mảng hoặc option1-4), correct_answer (0-3), explanation, program_id, lesson_id</p>
+                </CardContent>
+              </Card>
             </div>
           </DialogContent>
         </Dialog>

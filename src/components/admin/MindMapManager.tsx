@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Trash2, Edit, Save, X, Loader2 } from "lucide-react";
+import { Plus, Trash2, Edit, Save, X, Loader2, Upload, FileJson } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -46,8 +46,11 @@ export function MindMapManager() {
   const [mindmaps, setMindmaps] = useState<MindMap[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editingMindmap, setEditingMindmap] = useState<MindMap | null>(null);
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [programId, setProgramId] = useState("1");
@@ -201,6 +204,53 @@ export function MindMapManager() {
     }
   }
 
+  async function handleFileImport(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.json')) {
+      toast.error("Chỉ hỗ trợ file JSON cho sơ đồ tư duy");
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const data = Array.isArray(parsed) ? parsed : [parsed];
+
+      const mindmapsToInsert = data.map((item) => ({
+        program_id: item.program_id || programId,
+        lesson_id: item.lesson_id || lessonId,
+        root_label: item.root_label,
+        nodes: (item.nodes || []) as unknown as Json,
+      })).filter(m => m.root_label);
+
+      if (mindmapsToInsert.length === 0) {
+        toast.error("Không tìm thấy sơ đồ tư duy hợp lệ trong file");
+        setImporting(false);
+        return;
+      }
+
+      const { error } = await supabase.from("lesson_mindmaps").insert(mindmapsToInsert);
+
+      if (error) {
+        toast.error("Lỗi khi import: " + error.message);
+        console.error(error);
+      } else {
+        toast.success(`Đã import ${mindmapsToInsert.length} sơ đồ tư duy`);
+        setImportDialogOpen(false);
+        fetchMindmaps();
+      }
+    } catch (err) {
+      toast.error("Lỗi khi đọc file: " + (err as Error).message);
+      console.error(err);
+    }
+
+    setImporting(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
   const colorOptions = [
     { value: "blue", label: "Xanh dương" },
     { value: "green", label: "Xanh lá" },
@@ -342,6 +392,57 @@ export function MindMapManager() {
                   Lưu
                 </Button>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Import Dialog */}
+        <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <Upload className="w-4 h-4" />
+              Import
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Import sơ đồ tư duy từ file</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label>Chương trình mặc định</Label>
+                <Input value={programId} onChange={(e) => setProgramId(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Bài học mặc định</Label>
+                <Input value={lessonId} onChange={(e) => setLessonId(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Chọn file JSON</Label>
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileImport}
+                  disabled={importing}
+                />
+              </div>
+              {importing && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Đang import...
+                </div>
+              )}
+              <Card className="bg-muted/50">
+                <CardContent className="pt-4 text-sm text-muted-foreground">
+                  <p className="font-medium mb-2">Định dạng file JSON:</p>
+                  <div className="flex items-center gap-1 mb-2">
+                    <FileJson className="w-4 h-4" />
+                    <span>Mảng các object với: root_label, nodes[], program_id, lesson_id</span>
+                  </div>
+                  <p>Mỗi node có: id, label, color, children[]</p>
+                </CardContent>
+              </Card>
             </div>
           </DialogContent>
         </Dialog>
