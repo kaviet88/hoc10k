@@ -33,9 +33,16 @@ const sampleQuestions: Question[] = [
   {
     id: 2,
     type: "listening",
-    question: "LISTENING & FILL IN THE BLANKS:\n\nNghe audio và điền từ còn thiếu:\n\n1: Tom played _____ on his phone.",
+    question: "LISTENING & FILL IN THE BLANKS:\n\nNghe audio và điền từ còn thiếu vào các chỗ trống:",
     audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-    correctAnswer: "games",
+    listeningBlanks: [
+      { id: "listen1_1", label: "1: Tom played", placeholder: "..." },
+      { id: "listen1_2", label: "2: Anna loves", placeholder: "..." },
+      { id: "listen1_3", label: "3: Leo and Sophie played", placeholder: "..." },
+      { id: "listen1_4", label: "4: Lucy rode her", placeholder: "..." },
+      { id: "listen1_5", label: "5: Ben read a", placeholder: "..." },
+    ],
+    correctAnswer: "games,dancing,chess,bike,book",
     points: 1,
   },
   {
@@ -76,9 +83,14 @@ const sampleQuestions: Question[] = [
   {
     id: 7,
     type: "listening",
-    question: "LISTENING COMPREHENSION:\n\nNghe đoạn audio và trả lời câu hỏi:\n\nAnna loves _____.",
+    question: "LISTENING COMPREHENSION:\n\nNghe đoạn audio và điền các từ còn thiếu:",
     audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-    correctAnswer: "music",
+    listeningBlanks: [
+      { id: "listen2_1", label: "1: The cat is", placeholder: "color..." },
+      { id: "listen2_2", label: "2: It likes to eat", placeholder: "food..." },
+      { id: "listen2_3", label: "3: The cat sleeps on the", placeholder: "place..." },
+    ],
+    correctAnswer: "black,fish,sofa",
     points: 1,
   },
   {
@@ -110,6 +122,7 @@ const Practice = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string | number>>({});
   const [dropdownAnswers, setDropdownAnswers] = useState<Record<number, Record<string, string>>>({});
+  const [listeningAnswers, setListeningAnswers] = useState<Record<number, Record<string, string>>>({});
   const [timeRemaining, setTimeRemaining] = useState(30 * 60); // 30 minutes
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -186,6 +199,21 @@ const Practice = () => {
     // Combine all dropdown answers for this question
     const currentDropdowns = { ...(dropdownAnswers[question.id] || {}), [blankId]: value };
     const combinedAnswer = Object.values(currentDropdowns).join(",");
+    setAnswers((prev) => ({ ...prev, [question.id]: combinedAnswer }));
+  };
+
+  const handleListeningChange = (blankId: string, value: string) => {
+    setListeningAnswers((prev) => ({
+      ...prev,
+      [question.id]: {
+        ...(prev[question.id] || {}),
+        [blankId]: value,
+      },
+    }));
+    
+    // Combine all listening answers for this question
+    const currentListening = { ...(listeningAnswers[question.id] || {}), [blankId]: value };
+    const combinedAnswer = Object.values(currentListening).join(",");
     setAnswers((prev) => ({ ...prev, [question.id]: combinedAnswer }));
   };
 
@@ -526,8 +554,10 @@ const Practice = () => {
               totalQuestions={allQuestions.length}
               selectedAnswer={answers[question.id]}
               dropdownAnswers={dropdownAnswers[question.id]}
+              listeningAnswers={listeningAnswers[question.id]}
               onAnswerChange={handleAnswer}
               onDropdownChange={handleDropdownChange}
+              onListeningChange={handleListeningChange}
             />
           </div>
 
