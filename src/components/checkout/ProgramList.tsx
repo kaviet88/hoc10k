@@ -2,14 +2,14 @@ import { BookOpen, Plus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Program, CartItem } from "@/pages/Checkout";
+import type { Program } from "@/pages/Checkout";
 
 interface ProgramListProps {
   programs: Program[];
   activeTab: "single" | "combo";
   onTabChange: (tab: "single" | "combo") => void;
   onAddToCart: (program: Program) => void;
-  cartItems: CartItem[];
+  isInCart: (id: string) => boolean;
 }
 
 const tagColors: Record<string, string> = {
@@ -24,13 +24,11 @@ export const ProgramList = ({
   activeTab,
   onTabChange,
   onAddToCart,
-  cartItems,
+  isInCart,
 }: ProgramListProps) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN").format(price) + " đ";
   };
-
-  const isInCart = (id: string) => cartItems.some((item) => item.id === id);
 
   return (
     <div className="bg-card rounded-xl border border-border p-6 shadow-card">
