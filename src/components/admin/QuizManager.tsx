@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Trash2, Edit, Save, X, Loader2, Upload, FileJson, FileSpreadsheet } from "lucide-react";
+import { Plus, Trash2, Edit, Save, X, Loader2, Upload, FileJson, FileSpreadsheet, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -410,18 +410,65 @@ export function QuizManager() {
               )}
               <Card className="bg-muted/50">
                 <CardContent className="pt-4 text-sm text-muted-foreground">
-                  <p className="font-medium mb-2">Định dạng file:</p>
-                  <div className="flex gap-4">
-                    <div className="flex items-center gap-1">
-                      <FileJson className="w-4 h-4" />
-                      <span>JSON</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <FileSpreadsheet className="w-4 h-4" />
-                      <span>CSV</span>
-                    </div>
+                  <p className="font-medium mb-2">Tải template mẫu:</p>
+                  <div className="flex gap-2 mb-3">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        const template = [
+                          {
+                            program_id: "1",
+                            lesson_id: "1-1",
+                            question: "Câu hỏi mẫu 1?",
+                            options: ["Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"],
+                            correct_answer: 0,
+                            explanation: "Giải thích tại sao đáp án A đúng",
+                            question_order: 1
+                          },
+                          {
+                            program_id: "1",
+                            lesson_id: "1-1",
+                            question: "Câu hỏi mẫu 2?",
+                            options: ["Lựa chọn 1", "Lựa chọn 2", "Lựa chọn 3", "Lựa chọn 4"],
+                            correct_answer: 2,
+                            explanation: "Giải thích cho câu 2",
+                            question_order: 2
+                          }
+                        ];
+                        const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'quiz-template.json';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                    >
+                      <FileJson className="w-4 h-4 mr-1" />
+                      JSON
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        const csv = `program_id,lesson_id,question,option1,option2,option3,option4,correct_answer,explanation,question_order
+1,1-1,Câu hỏi mẫu 1?,Đáp án A,Đáp án B,Đáp án C,Đáp án D,0,Giải thích tại sao đáp án A đúng,1
+1,1-1,Câu hỏi mẫu 2?,Lựa chọn 1,Lựa chọn 2,Lựa chọn 3,Lựa chọn 4,2,Giải thích cho câu 2,2`;
+                        const blob = new Blob([csv], { type: 'text/csv' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'quiz-template.csv';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                    >
+                      <FileSpreadsheet className="w-4 h-4 mr-1" />
+                      CSV
+                    </Button>
                   </div>
-                  <p className="mt-2">Các trường: question, options (mảng hoặc option1-4), correct_answer (0-3), explanation, program_id, lesson_id</p>
+                  <p className="text-xs">Các trường: question, options (mảng hoặc option1-4), correct_answer (0-3), explanation, program_id, lesson_id</p>
                 </CardContent>
               </Card>
             </div>

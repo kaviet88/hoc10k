@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Trash2, Edit, Save, X, Loader2, Upload, FileJson } from "lucide-react";
+import { Plus, Trash2, Edit, Save, X, Loader2, Upload, FileJson, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -435,12 +435,51 @@ export function MindMapManager() {
               )}
               <Card className="bg-muted/50">
                 <CardContent className="pt-4 text-sm text-muted-foreground">
-                  <p className="font-medium mb-2">Định dạng file JSON:</p>
-                  <div className="flex items-center gap-1 mb-2">
-                    <FileJson className="w-4 h-4" />
-                    <span>Mảng các object với: root_label, nodes[], program_id, lesson_id</span>
-                  </div>
-                  <p>Mỗi node có: id, label, color, children[]</p>
+                  <p className="font-medium mb-2">Tải template mẫu:</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="mb-3"
+                    onClick={() => {
+                      const template = [
+                        {
+                          program_id: "1",
+                          lesson_id: "1-1",
+                          root_label: "Chủ đề chính",
+                          nodes: [
+                            {
+                              id: "node-1",
+                              label: "Nhánh 1",
+                              color: "blue",
+                              children: [
+                                { id: "child-1-1", label: "Mục con 1.1" },
+                                { id: "child-1-2", label: "Mục con 1.2" }
+                              ]
+                            },
+                            {
+                              id: "node-2",
+                              label: "Nhánh 2",
+                              color: "green",
+                              children: [
+                                { id: "child-2-1", label: "Mục con 2.1" }
+                              ]
+                            }
+                          ]
+                        }
+                      ];
+                      const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'mindmap-template.json';
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    <FileJson className="w-4 h-4 mr-1" />
+                    Tải JSON mẫu
+                  </Button>
+                  <p className="text-xs">Mỗi node có: id, label, color (blue/green/purple/orange/red), children[]</p>
                 </CardContent>
               </Card>
             </div>
