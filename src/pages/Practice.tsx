@@ -32,8 +32,9 @@ const sampleQuestions: Question[] = [
   },
   {
     id: 2,
-    type: "fill_blank",
-    question: "LISTENING & FILL IN THE BLANKS:\n\n1: Tom played _____ on his phone.\n\nNghe audio và điền từ còn thiếu vào chỗ trống.",
+    type: "listening",
+    question: "LISTENING & FILL IN THE BLANKS:\n\nNghe audio và điền từ còn thiếu:\n\n1: Tom played _____ on his phone.",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
     correctAnswer: "games",
     points: 1,
   },
@@ -74,13 +75,10 @@ const sampleQuestions: Question[] = [
   },
   {
     id: 7,
-    type: "dropdown_select",
-    question: "Tom always finishes his homework [BLANK:0] he plays.\n\nHe thinks free time is good [BLANK:1] relaxing.",
-    blanks: [
-      { id: "blank4", options: ["before", "after", "when", "while"] },
-      { id: "blank5", options: ["for", "to", "with", "at"] },
-    ],
-    correctAnswer: "before,for",
+    type: "listening",
+    question: "LISTENING COMPREHENSION:\n\nNghe đoạn audio và trả lời câu hỏi:\n\nAnna loves _____.",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+    correctAnswer: "music",
     points: 1,
   },
   {

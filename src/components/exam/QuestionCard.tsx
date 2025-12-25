@@ -9,13 +9,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Info, FileText, Pencil, List } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Info, FileText, Pencil, List, Play, Pause, Volume2, Headphones } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 
 export interface Question {
   id: number;
-  type: "multiple_choice" | "fill_blank" | "dropdown_select";
+  type: "multiple_choice" | "fill_blank" | "dropdown_select" | "listening";
   question: string;
   image?: string;
+  audioUrl?: string;
   options?: string[];
   correctAnswer: string | number;
   points: number;
@@ -32,6 +35,100 @@ interface QuestionCardProps {
   onDropdownChange?: (blankId: string, value: string) => void;
 }
 
+// Audio Player Component
+const AudioPlayer = ({ audioUrl }: { audioUrl: string }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleLoadedMetadata = () => setDuration(audio.duration);
+    const handleEnded = () => setIsPlaying(false);
+
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("ended", handleEnded);
+
+    return () => {
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("ended", handleEnded);
+    };
+  }, []);
+
+  const togglePlay = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleSeek = (value: number[]) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = value[0];
+      setCurrentTime(value[0]);
+    }
+  };
+
+  const formatTime = (time: number) => {
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="bg-muted/50 rounded-xl p-4 mb-6">
+      <audio ref={audioRef} src={audioUrl} preload="metadata" />
+      
+      <div className="flex items-center gap-4">
+        <button
+          onClick={togglePlay}
+          className="w-12 h-12 rounded-full bg-card border-2 border-border flex items-center justify-center hover:bg-muted transition-colors"
+        >
+          {isPlaying ? (
+            <Pause className="w-5 h-5 text-foreground" />
+          ) : (
+            <Play className="w-5 h-5 text-foreground ml-0.5" />
+          )}
+        </button>
+
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground min-w-[45px]">
+              {formatTime(currentTime)}
+            </span>
+            <Slider
+              value={[currentTime]}
+              max={duration || 100}
+              step={0.1}
+              onValueChange={handleSeek}
+              className="flex-1"
+            />
+            <span className="text-sm text-muted-foreground min-w-[45px]">
+              {formatTime(duration)}
+            </span>
+          </div>
+        </div>
+
+        <Volume2 className="w-5 h-5 text-muted-foreground" />
+        
+        <div className="w-10 h-10 rounded-full bg-destructive flex items-center justify-center">
+          <Play className="w-4 h-4 text-white" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const getQuestionTypeLabel = (type: string) => {
   switch (type) {
     case "multiple_choice":
@@ -40,6 +137,8 @@ const getQuestionTypeLabel = (type: string) => {
       return { label: "Điền vào chỗ trống", icon: Pencil, color: "bg-amber-500/10 text-amber-600" };
     case "dropdown_select":
       return { label: "Chọn từ danh sách", icon: FileText, color: "bg-emerald-500/10 text-emerald-600" };
+    case "listening":
+      return { label: "Âm thanh", icon: Headphones, color: "bg-rose-500/10 text-rose-600" };
     default:
       return { label: "Câu hỏi", icon: FileText, color: "bg-muted text-muted-foreground" };
   }
@@ -141,6 +240,19 @@ export const QuestionCard = ({
           </div>
         );
 
+      case "listening":
+        return (
+          <div className="mt-6">
+            <Input
+              type="text"
+              placeholder="Nhập câu trả lời..."
+              value={selectedAnswer?.toString() || ""}
+              onChange={(e) => onAnswerChange(e.target.value)}
+              className="text-lg py-6 text-center"
+            />
+          </div>
+        );
+
       default:
         return null;
     }
@@ -163,6 +275,9 @@ export const QuestionCard = ({
           {question.points} điểm
         </Badge>
       </div>
+
+      {/* Audio player for listening questions */}
+      {question.audioUrl && <AudioPlayer audioUrl={question.audioUrl} />}
 
       {/* Question text */}
       <div className="text-lg text-foreground leading-relaxed whitespace-pre-wrap">
