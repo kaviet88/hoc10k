@@ -18,6 +18,7 @@ import Practice from "./pages/Practice";
 import Exams from "./pages/Exams";
 import ExamList from "./pages/ExamList";
 import ExamPreview from "./pages/ExamPreview";
+import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/my-courses" element={<MyCourses />} />
               <Route path="/purchase-history" element={<PurchaseHistory />} />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/notifications" element={<Notifications />} />
               <Route path="/games" element={<Index />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
