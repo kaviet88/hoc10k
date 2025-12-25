@@ -172,9 +172,8 @@ const ExamList = () => {
     return badges[type] || null;
   };
 
-  const handleStartExam = (examId: string, examTitle: string) => {
-    // Navigate to practice with exam context
-    navigate(`/practice?examId=${examId}&title=${encodeURIComponent(examTitle)}`);
+  const handleStartExam = (examId: string) => {
+    navigate(`/exams/preview/${examId}`);
   };
 
   return (
@@ -408,14 +407,14 @@ const ExamList = () => {
                   {/* Action button */}
                   <div className="flex items-center gap-3">
                     {exam.isCompleted && (
-                      <Button variant="outline" onClick={() => handleStartExam(exam.id, exam.title)}>
+                      <Button variant="outline" onClick={() => handleStartExam(exam.id)}>
                         Xem lại
                       </Button>
                     )}
                     <Button
                       variant={exam.is_premium ? "secondary" : "gradient"}
                       className="gap-2"
-                      onClick={() => handleStartExam(exam.id, exam.title)}
+                      onClick={() => handleStartExam(exam.id)}
                     >
                       {exam.is_premium ? (
                         <>
