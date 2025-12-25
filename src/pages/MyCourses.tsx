@@ -4,7 +4,6 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
@@ -25,18 +24,16 @@ interface PurchasedCourse {
   duration: string;
   price: number;
   purchased_at: string;
-  // Mock progress data - in a real app this would come from a progress table
-  progress?: number;
-  lessonsCompleted?: number;
-  totalLessons?: number;
+  progress: number;
+  lessonsCompleted: number;
+  totalLessons: number;
 }
 
-// Mock progress data - in production, this would come from a user_progress table
-const mockProgressData: Record<string, { progress: number; lessonsCompleted: number; totalLessons: number }> = {
-  "1": { progress: 45, lessonsCompleted: 28, totalLessons: 62 },
-  "2": { progress: 20, lessonsCompleted: 12, totalLessons: 60 },
-  "3": { progress: 0, lessonsCompleted: 0, totalLessons: 90 },
-};
+interface ProgressData {
+  program_id: string;
+  completed_count: number;
+  total_count: number;
+}
 
 const MyCourses = () => {
   const { user, loading: authLoading } = useAuth();
@@ -57,22 +54,62 @@ const MyCourses = () => {
   const fetchPurchasedCourses = async () => {
     if (!user) return;
 
-    const { data, error } = await supabase
+    // Fetch purchased courses
+    const { data: purchaseData, error: purchaseError } = await supabase
       .from("purchase_history")
       .select("*")
       .eq("user_id", user.id)
       .order("purchased_at", { ascending: false });
 
-    if (data && !error) {
-      // Enrich with mock progress data
-      const enrichedCourses = data.map((course) => ({
-        ...course,
-        progress: mockProgressData[course.program_id]?.progress || 0,
-        lessonsCompleted: mockProgressData[course.program_id]?.lessonsCompleted || 0,
-        totalLessons: mockProgressData[course.program_id]?.totalLessons || 30,
-      }));
-      setCourses(enrichedCourses);
+    if (purchaseError || !purchaseData) {
+      setLoading(false);
+      return;
     }
+
+    // Get unique program IDs
+    const programIds = [...new Set(purchaseData.map((p) => p.program_id))];
+
+    // Fetch total lessons per program
+    const { data: lessonCounts } = await supabase
+      .from("program_lessons")
+      .select("program_id")
+      .in("program_id", programIds);
+
+    // Count total lessons per program
+    const totalLessonsMap: Record<string, number> = {};
+    lessonCounts?.forEach((lesson) => {
+      totalLessonsMap[lesson.program_id] = (totalLessonsMap[lesson.program_id] || 0) + 1;
+    });
+
+    // Fetch user's completed lessons
+    const { data: progressData } = await supabase
+      .from("user_lesson_progress")
+      .select("program_id, completed")
+      .eq("user_id", user.id)
+      .eq("completed", true)
+      .in("program_id", programIds);
+
+    // Count completed lessons per program
+    const completedMap: Record<string, number> = {};
+    progressData?.forEach((p) => {
+      completedMap[p.program_id] = (completedMap[p.program_id] || 0) + 1;
+    });
+
+    // Enrich courses with real progress data
+    const enrichedCourses = purchaseData.map((course) => {
+      const totalLessons = totalLessonsMap[course.program_id] || 0;
+      const lessonsCompleted = completedMap[course.program_id] || 0;
+      const progress = totalLessons > 0 ? Math.round((lessonsCompleted / totalLessons) * 100) : 0;
+
+      return {
+        ...course,
+        progress,
+        lessonsCompleted,
+        totalLessons,
+      };
+    });
+
+    setCourses(enrichedCourses);
     setLoading(false);
   };
 

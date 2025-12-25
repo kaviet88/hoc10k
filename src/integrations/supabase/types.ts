@@ -104,6 +104,39 @@ export type Database = {
         }
         Relationships: []
       }
+      program_lessons: {
+        Row: {
+          created_at: string
+          day_number: number | null
+          duration_minutes: number
+          id: string
+          lesson_id: string
+          lesson_order: number
+          lesson_title: string
+          program_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_number?: number | null
+          duration_minutes?: number
+          id?: string
+          lesson_id: string
+          lesson_order?: number
+          lesson_title: string
+          program_id: string
+        }
+        Update: {
+          created_at?: string
+          day_number?: number | null
+          duration_minutes?: number
+          id?: string
+          lesson_id?: string
+          lesson_order?: number
+          lesson_title?: string
+          program_id?: string
+        }
+        Relationships: []
+      }
       purchase_history: {
         Row: {
           duration: string
@@ -198,6 +231,42 @@ export type Database = {
           program_id?: string
           program_name?: string
           program_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_lesson_progress: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          lesson_id: string
+          program_id: string
+          time_spent_seconds: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          lesson_id: string
+          program_id: string
+          time_spent_seconds?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          lesson_id?: string
+          program_id?: string
+          time_spent_seconds?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
