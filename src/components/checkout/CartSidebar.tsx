@@ -1,4 +1,5 @@
-import { ShoppingCart, Trash2, BookOpen, CreditCard } from "lucide-react";
+import { ShoppingCart, Trash2, BookOpen, CreditCard, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,7 +10,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
-import type { CartItem } from "@/contexts/CartContext";
+import { useCart, CartItem } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
 
 interface CartSidebarProps {
   items: CartItem[];
@@ -23,12 +26,42 @@ export const CartSidebar = ({
   onClearCart,
 }: CartSidebarProps) => {
   const [paymentMethod, setPaymentMethod] = useState("online");
+  const { checkout, loading } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN").format(price) + " đ";
   };
 
   const total = items.reduce((sum, item) => sum + item.price, 0);
+
+  const handleCheckout = async () => {
+    if (!user) {
+      toast({
+        title: "Yêu cầu đăng nhập",
+        description: "Vui lòng đăng nhập để thanh toán",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    const success = await checkout(paymentMethod);
+    if (success) {
+      toast({
+        title: "Thanh toán thành công!",
+        description: "Cảm ơn bạn đã mua hàng. Xem lịch sử mua hàng để theo dõi đơn hàng.",
+      });
+      navigate("/purchase-history");
+    } else {
+      toast({
+        title: "Thanh toán thất bại",
+        description: "Đã xảy ra lỗi. Vui lòng thử lại sau.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="bg-card rounded-xl border border-border p-6 shadow-card sticky top-24">
@@ -132,6 +165,16 @@ export const CartSidebar = ({
           </Select>
         </div>
 
+        {!user && items.length > 0 && (
+          <p className="text-xs text-accent mb-4">
+            Vui lòng{" "}
+            <a href="/auth" className="underline font-medium">
+              đăng nhập
+            </a>{" "}
+            để thanh toán và lưu lịch sử mua hàng.
+          </p>
+        )}
+
         <p className="text-xs text-muted-foreground mb-4">
           Nếu không thể thanh toán, vui lòng{" "}
           <a href="#" className="text-accent hover:underline font-medium">
@@ -144,10 +187,15 @@ export const CartSidebar = ({
       <Button
         className="w-full gradient-primary text-primary-foreground shadow-primary"
         size="lg"
-        disabled={items.length === 0}
+        disabled={items.length === 0 || loading}
+        onClick={handleCheckout}
       >
-        <CreditCard className="w-5 h-5 mr-2" />
-        Thanh Toán Ngay
+        {loading ? (
+          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+        ) : (
+          <CreditCard className="w-5 h-5 mr-2" />
+        )}
+        {user ? "Thanh Toán Ngay" : "Đăng nhập để thanh toán"}
       </Button>
     </div>
   );

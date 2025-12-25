@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
   BookOpen, 
@@ -13,10 +13,20 @@ import {
   User,
   ChevronDown,
   Search,
-  X
+  X,
+  LogOut,
+  History
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const navItems = [
   { icon: Home, label: "Trang chủ", href: "/" },
@@ -32,6 +42,19 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { itemCount } = useCart();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
+
+  const getUserDisplayName = () => {
+    if (!user) return "";
+    return user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-card border-b border-border shadow-card">
       <div className="container mx-auto">
@@ -92,13 +115,35 @@ export function Header() {
             </Button>
 
             {/* User Menu */}
-            <Button variant="outline" size="sm" className="gap-2 hidden sm:flex">
-              <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center">
-                <User className="w-3 h-3 text-accent-foreground" />
-              </div>
-              <span>Mon</span>
-              <ChevronDown className="w-3 h-3" />
-            </Button>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2 hidden sm:flex">
+                    <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center">
+                      <User className="w-3 h-3 text-accent-foreground" />
+                    </div>
+                    <span className="max-w-24 truncate">{getUserDisplayName()}</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => navigate("/purchase-history")}>
+                    <History className="w-4 h-4 mr-2" />
+                    Lịch sử mua hàng
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Đăng xuất
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button variant="outline" size="sm" className="gap-2 hidden sm:flex" onClick={() => navigate("/auth")}>
+                <User className="w-4 h-4" />
+                Đăng nhập
+              </Button>
+            )}
 
             {/* Mobile Menu Toggle */}
             <Button 
@@ -133,6 +178,27 @@ export function Header() {
                   </Button>
                 </Link>
               ))}
+              {user ? (
+                <>
+                  <Link to="/purchase-history" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start gap-2">
+                      <History className="w-4 h-4" />
+                      Lịch sử mua hàng
+                    </Button>
+                  </Link>
+                  <Button variant="ghost" className="w-full justify-start gap-2 text-destructive" onClick={handleSignOut}>
+                    <LogOut className="w-4 h-4" />
+                    Đăng xuất
+                  </Button>
+                </>
+              ) : (
+                <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start gap-2">
+                    <User className="w-4 h-4" />
+                    Đăng nhập
+                  </Button>
+                </Link>
+              )}
             </div>
           </nav>
         )}

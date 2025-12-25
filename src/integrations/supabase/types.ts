@@ -14,7 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      purchase_history: {
+        Row: {
+          duration: string
+          id: string
+          payment_method: string
+          price: number
+          program_id: string
+          program_name: string
+          program_type: string
+          purchased_at: string
+          user_id: string
+        }
+        Insert: {
+          duration: string
+          id?: string
+          payment_method: string
+          price: number
+          program_id: string
+          program_name: string
+          program_type: string
+          purchased_at?: string
+          user_id: string
+        }
+        Update: {
+          duration?: string
+          id?: string
+          payment_method?: string
+          price?: number
+          program_id?: string
+          program_name?: string
+          program_type?: string
+          purchased_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_carts: {
+        Row: {
+          added_at: string
+          duration: string
+          id: string
+          price: number
+          program_id: string
+          program_name: string
+          program_type: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          duration: string
+          id?: string
+          price: number
+          program_id: string
+          program_name: string
+          program_type: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          duration?: string
+          id?: string
+          price?: number
+          program_id?: string
+          program_name?: string
+          program_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
