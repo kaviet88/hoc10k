@@ -173,6 +173,56 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_test_questions: {
+        Row: {
+          audio_url: string | null
+          correct_answer: string
+          created_at: string
+          explanation: string | null
+          id: string
+          listening_blanks: Json | null
+          options: Json | null
+          question_number: number
+          question_text: string
+          question_type: string
+          test_id: string
+        }
+        Insert: {
+          audio_url?: string | null
+          correct_answer: string
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          listening_blanks?: Json | null
+          options?: Json | null
+          question_number: number
+          question_text: string
+          question_type?: string
+          test_id: string
+        }
+        Update: {
+          audio_url?: string | null
+          correct_answer?: string
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          listening_blanks?: Json | null
+          options?: Json | null
+          question_number?: number
+          question_text?: string
+          question_type?: string
+          test_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_test_questions_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "practice_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       practice_tests: {
         Row: {
           created_at: string

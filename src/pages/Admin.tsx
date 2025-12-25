@@ -4,9 +4,10 @@ import { Header } from "@/components/layout/Header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, ShieldAlert, Brain, HelpCircle } from "lucide-react";
+import { Loader2, ShieldAlert, Brain, HelpCircle, FileQuestion } from "lucide-react";
 import { QuizManager } from "@/components/admin/QuizManager";
 import { MindMapManager } from "@/components/admin/MindMapManager";
+import { ExamQuestionManager } from "@/components/admin/ExamQuestionManager";
 
 export default function Admin() {
   const { user, loading: authLoading } = useAuth();
@@ -49,20 +50,28 @@ export default function Admin() {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Quản trị nội dung</h1>
-          <p className="text-muted-foreground mt-2">Quản lý câu hỏi quiz và sơ đồ tư duy cho các bài học</p>
+          <p className="text-muted-foreground mt-2">Quản lý câu hỏi quiz, sơ đồ tư duy và đề thi</p>
         </div>
 
-        <Tabs defaultValue="quiz" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+        <Tabs defaultValue="exam" className="w-full">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
+            <TabsTrigger value="exam" className="gap-2">
+              <FileQuestion className="w-4 h-4" />
+              Đề thi
+            </TabsTrigger>
             <TabsTrigger value="quiz" className="gap-2">
               <HelpCircle className="w-4 h-4" />
-              Câu hỏi Quiz
+              Quiz bài học
             </TabsTrigger>
             <TabsTrigger value="mindmap" className="gap-2">
               <Brain className="w-4 h-4" />
               Sơ đồ tư duy
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="exam" className="mt-6">
+            <ExamQuestionManager />
+          </TabsContent>
 
           <TabsContent value="quiz" className="mt-6">
             <QuizManager />

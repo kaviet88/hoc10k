@@ -21,6 +21,7 @@ import { ExamProgressHeader } from "@/components/exam/ExamProgressHeader";
 import { QuestionNavigator } from "@/components/exam/QuestionNavigator";
 import { QuestionCard, Question } from "@/components/exam/QuestionCard";
 
+// Fallback sample questions when no database questions exist
 const sampleQuestions: Question[] = [
   {
     id: 1,
@@ -73,41 +74,7 @@ const sampleQuestions: Question[] = [
     correctAnswer: 1,
     points: 1,
   },
-  {
-    id: 6,
-    type: "fill_blank",
-    question: "Điền số thích hợp vào chỗ trống: 15 + ___ = 28",
-    correctAnswer: "13",
-    points: 1,
-  },
-  {
-    id: 7,
-    type: "listening",
-    question: "LISTENING COMPREHENSION:\n\nNghe đoạn audio và điền các từ còn thiếu:",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-    listeningBlanks: [
-      { id: "listen2_1", label: "1: The cat is", placeholder: "color..." },
-      { id: "listen2_2", label: "2: It likes to eat", placeholder: "food..." },
-      { id: "listen2_3", label: "3: The cat sleeps on the", placeholder: "place..." },
-    ],
-    correctAnswer: "black,fish,sofa",
-    points: 1,
-  },
-  {
-    id: 8,
-    type: "multiple_choice",
-    question: "What is the capital of Vietnam?",
-    options: ["Ho Chi Minh City", "Hanoi", "Da Nang", "Hue"],
-    correctAnswer: 1,
-    points: 1,
-  },
 ];
-
-// Generate 15 questions by repeating sample
-const allQuestions: Question[] = Array.from({ length: 15 }, (_, i) => ({
-  ...sampleQuestions[i % sampleQuestions.length],
-  id: i + 1,
-}));
 
 const Practice = () => {
   const navigate = useNavigate();
@@ -117,6 +84,8 @@ const Practice = () => {
   const examTitle = searchParams.get("title") || "KIỂM TRA TRÌNH ĐỘ MOVERS 2";
   const examId = searchParams.get("examId");
   
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [showStartDialog, setShowStartDialog] = useState(true);
   const [examStarted, setExamStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -139,6 +108,45 @@ const Practice = () => {
 
   const totalTime = 30 * 60;
 
+  // Fetch questions from database
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      setLoadingQuestions(true);
+      
+      if (examId) {
+        const { data, error } = await supabase
+          .from("practice_test_questions")
+          .select("*")
+          .eq("test_id", examId)
+          .order("question_number");
+
+        if (!error && data && data.length > 0) {
+          const mappedQuestions: Question[] = data.map((q) => ({
+            id: q.question_number,
+            type: q.question_type as Question["type"],
+            question: q.question_text,
+            options: Array.isArray(q.options) ? (q.options as unknown as string[]) : undefined,
+            correctAnswer: q.question_type === "multiple_choice" ? parseInt(q.correct_answer) : q.correct_answer,
+            points: 1,
+            audioUrl: q.audio_url || undefined,
+            listeningBlanks: q.listening_blanks as { id: string; label: string; placeholder: string }[] | undefined,
+          }));
+          setQuestions(mappedQuestions);
+        } else {
+          // Use sample questions as fallback
+          setQuestions(sampleQuestions);
+        }
+      } else {
+        // No examId, use sample questions
+        setQuestions(sampleQuestions);
+      }
+      
+      setLoadingQuestions(false);
+    };
+
+    fetchQuestions();
+  }, [examId]);
+
   const handleStartExam = async () => {
     setShowStartDialog(false);
     setExamStarted(true);
@@ -151,7 +159,7 @@ const Practice = () => {
         user_id: user.id,
         test_id: examId || null,
         test_title: examTitle,
-        total_questions: allQuestions.length,
+        total_questions: questions.length,
         status: "in_progress",
       })
       .select()
@@ -177,17 +185,19 @@ const Practice = () => {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const question = allQuestions[currentQuestion];
+  const question = questions[currentQuestion];
   const answeredCount = Object.keys(answers).length;
   const answeredQuestions = Object.fromEntries(
     Object.keys(answers).map(id => [id, true])
   );
 
   const handleAnswer = (value: string | number) => {
+    if (!question) return;
     setAnswers((prev) => ({ ...prev, [question.id]: value }));
   };
 
   const handleDropdownChange = (blankId: string, value: string) => {
+    if (!question) return;
     setDropdownAnswers((prev) => ({
       ...prev,
       [question.id]: {
@@ -203,6 +213,7 @@ const Practice = () => {
   };
 
   const handleListeningChange = (blankId: string, value: string) => {
+    if (!question) return;
     setListeningAnswers((prev) => ({
       ...prev,
       [question.id]: {
@@ -234,7 +245,7 @@ const Practice = () => {
     let wrong = 0;
     let unanswered = 0;
 
-    const answersToInsert = allQuestions.map((q) => {
+    const answersToInsert = questions.map((q) => {
       const userAnswer = answers[q.id];
       const correctAnswer = q.correctAnswer.toString();
       const isCorrect = userAnswer?.toString() === correctAnswer;
@@ -256,7 +267,7 @@ const Practice = () => {
       };
     });
 
-    const scorePercent = Math.round((correct / allQuestions.length) * 100);
+    const scorePercent = Math.round((correct / questions.length) * 100);
     const timeSpent = totalTime - timeRemaining;
 
     // Save answers
@@ -282,12 +293,12 @@ const Practice = () => {
 
     toast({
       title: "Nộp bài thành công! 🎉",
-      description: `Điểm của bạn: ${scorePercent}% (${correct}/${allQuestions.length} câu đúng)`,
+      description: `Điểm của bạn: ${scorePercent}% (${correct}/${questions.length} câu đúng)`,
     });
   };
 
   const handleNext = () => {
-    if (currentQuestion < allQuestions.length - 1) {
+    if (currentQuestion < questions.length - 1) {
       setCurrentQuestion((prev) => prev + 1);
     }
   };
@@ -317,6 +328,18 @@ const Practice = () => {
     };
   };
 
+  // Show loading while fetching questions
+  if (loadingQuestions) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+        <Header />
+        <main className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </main>
+      </div>
+    );
+  }
+
   // Show start dialog
   if (showStartDialog) {
     return (
@@ -328,7 +351,7 @@ const Practice = () => {
             onOpenChange={setShowStartDialog}
             examTitle={examTitle}
             timeLimit={30}
-            totalQuestions={allQuestions.length}
+            totalQuestions={questions.length}
             maxPoints={10}
             difficulty="medium"
             onStart={handleStartExam}
@@ -399,7 +422,7 @@ const Practice = () => {
               <div className="mt-8 text-left">
                 <h2 className="text-lg font-semibold text-foreground mb-4 text-center">Xem lại đáp án</h2>
                 <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                  {allQuestions.map((q, index) => {
+                  {questions.map((q, index) => {
                     const userAnswer = answers[q.id];
                     const isCorrect = userAnswer?.toString() === q.correctAnswer.toString();
                     const isUnanswered = userAnswer === undefined;
@@ -476,6 +499,21 @@ const Practice = () => {
     );
   }
 
+  // Check if question exists
+  if (!question) {
+    return (
+      <div className="min-h-screen bg-muted/30">
+        <Header />
+        <main className="flex items-center justify-center h-[60vh]">
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">Không tìm thấy câu hỏi</p>
+            <Button onClick={() => navigate(-1)}>Quay lại</Button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Compact Header */}
@@ -488,7 +526,7 @@ const Practice = () => {
               </Button>
               <div>
                 <h1 className="text-lg font-bold text-foreground">{examTitle}</h1>
-                <p className="text-sm text-muted-foreground">Câu {currentQuestion + 1} / {allQuestions.length}</p>
+                <p className="text-sm text-muted-foreground">Câu {currentQuestion + 1} / {questions.length}</p>
               </div>
             </div>
 
@@ -538,7 +576,7 @@ const Practice = () => {
         {/* Progress Header */}
         <ExamProgressHeader
           currentQuestion={currentQuestion}
-          totalQuestions={allQuestions.length}
+          totalQuestions={questions.length}
           answeredCount={answeredCount}
           timeRemaining={timeRemaining}
           totalTime={totalTime}
@@ -551,7 +589,7 @@ const Practice = () => {
             <QuestionCard
               question={question}
               questionNumber={currentQuestion + 1}
-              totalQuestions={allQuestions.length}
+              totalQuestions={questions.length}
               selectedAnswer={answers[question.id]}
               dropdownAnswers={dropdownAnswers[question.id]}
               listeningAnswers={listeningAnswers[question.id]}
@@ -564,7 +602,7 @@ const Practice = () => {
           {/* Navigator sidebar */}
           <div>
             <QuestionNavigator
-              totalQuestions={allQuestions.length}
+              totalQuestions={questions.length}
               currentQuestion={currentQuestion}
               answeredQuestions={answeredQuestions}
               onQuestionSelect={handleQuestionSelect}
