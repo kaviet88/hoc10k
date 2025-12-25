@@ -132,6 +132,10 @@ export function Header() {
                     <LayoutDashboard className="w-4 h-4 mr-2" />
                     Quản lý học tập
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/my-courses")}>
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Khóa học của tôi
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/purchase-history")}>
                     <History className="w-4 h-4 mr-2" />
                     Lịch sử mua hàng
@@ -189,6 +193,12 @@ export function Header() {
                     <Button variant="ghost" className="w-full justify-start gap-2">
                       <LayoutDashboard className="w-4 h-4" />
                       Quản lý học tập
+                    </Button>
+                  </Link>
+                  <Link to="/my-courses" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start gap-2">
+                      <BookOpen className="w-4 h-4" />
+                      Khóa học của tôi
                     </Button>
                   </Link>
                   <Link to="/purchase-history" onClick={() => setMobileMenuOpen(false)}>

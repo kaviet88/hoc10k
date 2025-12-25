@@ -11,6 +11,7 @@ import LessonDetail from "./pages/LessonDetail";
 import Checkout from "./pages/Checkout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import MyCourses from "./pages/MyCourses";
 import PurchaseHistory from "./pages/PurchaseHistory";
 import NotFound from "./pages/NotFound";
 
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/my-courses" element={<MyCourses />} />
               <Route path="/purchase-history" element={<PurchaseHistory />} />
               <Route path="/games" element={<Index />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
