@@ -81,7 +81,13 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          difficulty: string | null
+          exam_type: string | null
+          grade: number | null
           id: string
+          is_premium: boolean | null
+          participant_count: number | null
+          rating: number | null
           subject: string
           time_limit_minutes: number
           title: string
@@ -90,7 +96,13 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          difficulty?: string | null
+          exam_type?: string | null
+          grade?: number | null
           id?: string
+          is_premium?: boolean | null
+          participant_count?: number | null
+          rating?: number | null
           subject: string
           time_limit_minutes?: number
           title: string
@@ -99,7 +111,13 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          difficulty?: string | null
+          exam_type?: string | null
+          grade?: number | null
           id?: string
+          is_premium?: boolean | null
+          participant_count?: number | null
+          rating?: number | null
           subject?: string
           time_limit_minutes?: number
           title?: string
