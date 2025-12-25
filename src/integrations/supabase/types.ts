@@ -114,6 +114,7 @@ export type Database = {
           lesson_order: number
           lesson_title: string
           program_id: string
+          video_url: string | null
         }
         Insert: {
           created_at?: string
@@ -124,6 +125,7 @@ export type Database = {
           lesson_order?: number
           lesson_title: string
           program_id: string
+          video_url?: string | null
         }
         Update: {
           created_at?: string
@@ -134,6 +136,7 @@ export type Database = {
           lesson_order?: number
           lesson_title?: string
           program_id?: string
+          video_url?: string | null
         }
         Relationships: []
       }
