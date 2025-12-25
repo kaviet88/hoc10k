@@ -37,6 +37,7 @@ interface Lesson {
   duration_minutes: number;
   completed: boolean;
   video_url: string | null;
+  thumbnail_url: string | null;
 }
 
 interface GroupedLessons {
@@ -118,6 +119,7 @@ const LessonDetail = () => {
       duration_minutes: lesson.duration_minutes,
       completed: completedIds.has(lesson.lesson_id),
       video_url: lesson.video_url,
+      thumbnail_url: lesson.thumbnail_url,
     }));
 
     setLessons(enrichedLessons);
@@ -392,7 +394,7 @@ const LessonDetail = () => {
                   <div className="aspect-video relative">
                     <video
                       className="w-full h-full object-cover"
-                      poster="https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=800&auto=format&fit=crop"
+                      poster={activeLesson?.thumbnail_url || "https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=800&auto=format&fit=crop"}
                     >
                       <source src={activeLesson?.video_url || "https://www.w3schools.com/html/mov_bbb.mp4"} type="video/mp4" />
                       Your browser does not support the video tag.
