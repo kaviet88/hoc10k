@@ -1,6 +1,7 @@
 import { Header } from "@/components/layout/Header";
 import { FilterSidebar } from "@/components/exams/FilterSidebar";
 import { ExamCard } from "@/components/exams/ExamCard";
+import { AITutorChat } from "@/components/chat/AITutorChat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileText, Search, BookMarked } from "lucide-react";
@@ -186,6 +187,9 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      {/* AI Tutor Chat */}
+      <AITutorChat />
     </div>
   );
 };
