@@ -64,10 +64,7 @@ const Exams = () => {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
   const handleSubjectClick = (gradeId: number, subjectId: string) => {
-    setSelectedGrade(gradeId);
-    setSelectedSubject(subjectId);
-    // Navigate to practice or exam list
-    navigate("/practice");
+    navigate(`/exams/${gradeId}/${subjectId}`);
   };
 
   return (
