@@ -13,9 +13,13 @@ import {
   Clock, 
   ChevronLeft,
   HelpCircle,
-  CheckCircle2
+  CheckCircle2,
+  Loader2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
 
 interface Question {
   id: number;
@@ -78,10 +82,44 @@ const allQuestions: Question[] = Array.from({ length: 30 }, (_, i) => ({
 
 const Practice = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string | number>>({});
   const [timeRemaining, setTimeRemaining] = useState(30 * 60); // 30 minutes
   const [showHint, setShowHint] = useState(false);
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [testCompleted, setTestCompleted] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    correct: number;
+    wrong: number;
+    unanswered: number;
+    score: number;
+  } | null>(null);
+
+  // Create test attempt on mount
+  useEffect(() => {
+    const createAttempt = async () => {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from("user_test_attempts")
+        .insert({
+          user_id: user.id,
+          test_title: "(VT) Toán VIOEDU 2: Ôn tập hình học",
+          total_questions: allQuestions.length,
+          status: "in_progress",
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        setAttemptId(data.id);
+      }
+    };
+
+    createAttempt();
+  }, [user]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -102,6 +140,75 @@ const Practice = () => {
 
   const handleAnswer = (value: string | number) => {
     setAnswers((prev) => ({ ...prev, [question.id]: value }));
+  };
+
+  const handleSubmit = async () => {
+    if (!user || !attemptId) {
+      toast({
+        title: "Vui lòng đăng nhập",
+        description: "Bạn cần đăng nhập để lưu kết quả bài kiểm tra",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+
+    // Calculate results
+    let correct = 0;
+    let wrong = 0;
+    let unanswered = 0;
+
+    const answersToInsert = allQuestions.map((q) => {
+      const userAnswer = answers[q.id];
+      const correctAnswer = q.correctAnswer.toString();
+      const isCorrect = userAnswer?.toString() === correctAnswer;
+      
+      if (userAnswer === undefined) {
+        unanswered++;
+      } else if (isCorrect) {
+        correct++;
+      } else {
+        wrong++;
+      }
+
+      return {
+        attempt_id: attemptId,
+        question_number: q.id,
+        user_answer: userAnswer?.toString() || null,
+        correct_answer: correctAnswer,
+        is_correct: isCorrect,
+      };
+    });
+
+    const scorePercent = Math.round((correct / allQuestions.length) * 100);
+    const timeSpent = 30 * 60 - timeRemaining;
+
+    // Save answers
+    await supabase.from("user_test_answers").insert(answersToInsert);
+
+    // Update attempt
+    await supabase
+      .from("user_test_attempts")
+      .update({
+        correct_answers: correct,
+        wrong_answers: wrong,
+        unanswered: unanswered,
+        score_percent: scorePercent,
+        time_spent_seconds: timeSpent,
+        completed_at: new Date().toISOString(),
+        status: "completed",
+      })
+      .eq("id", attemptId);
+
+    setTestResult({ correct, wrong, unanswered, score: scorePercent });
+    setTestCompleted(true);
+    setSubmitting(false);
+
+    toast({
+      title: "Nộp bài thành công! 🎉",
+      description: `Điểm của bạn: ${scorePercent}% (${correct}/${allQuestions.length} câu đúng)`,
+    });
   };
 
   const handleNext = () => {
@@ -129,6 +236,52 @@ const Practice = () => {
     return "unanswered";
   };
 
+  // Show results if test completed
+  if (testCompleted && testResult) {
+    return (
+      <div className="min-h-screen bg-muted/30">
+        <Header />
+        <main className="container mx-auto px-4 py-12">
+          <div className="max-w-2xl mx-auto bg-card rounded-xl shadow-card p-8 text-center">
+            <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mx-auto mb-6">
+              <CheckCircle2 className="w-10 h-10 text-success" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Hoàn thành bài kiểm tra!</h1>
+            <p className="text-muted-foreground mb-8">Kết quả của bạn đã được lưu lại</p>
+
+            <div className="grid grid-cols-4 gap-4 mb-8">
+              <div className="bg-primary/10 rounded-lg p-4">
+                <p className="text-3xl font-bold text-primary">{testResult.score}%</p>
+                <p className="text-sm text-muted-foreground">Điểm số</p>
+              </div>
+              <div className="bg-success/10 rounded-lg p-4">
+                <p className="text-3xl font-bold text-success">{testResult.correct}</p>
+                <p className="text-sm text-muted-foreground">Đúng</p>
+              </div>
+              <div className="bg-destructive/10 rounded-lg p-4">
+                <p className="text-3xl font-bold text-destructive">{testResult.wrong}</p>
+                <p className="text-sm text-muted-foreground">Sai</p>
+              </div>
+              <div className="bg-muted rounded-lg p-4">
+                <p className="text-3xl font-bold text-muted-foreground">{testResult.unanswered}</p>
+                <p className="text-sm text-muted-foreground">Bỏ qua</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 justify-center">
+              <Button variant="outline" onClick={() => navigate("/")}>
+                Về trang chủ
+              </Button>
+              <Button onClick={() => window.location.reload()}>
+                Làm lại bài kiểm tra
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-muted/30">
       <Header />
@@ -149,7 +302,14 @@ const Practice = () => {
               <span className="font-bold text-primary">{formatTime(timeRemaining)}</span>
               <span className="text-sm text-muted-foreground">Thời gian còn lại</span>
             </div>
-            <Button className="bg-success hover:bg-success/90">Nộp bài</Button>
+            <Button 
+              className="bg-success hover:bg-success/90" 
+              onClick={handleSubmit}
+              disabled={submitting}
+            >
+              {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Nộp bài
+            </Button>
           </div>
         </div>
 

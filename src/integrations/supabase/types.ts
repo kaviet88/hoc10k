@@ -77,6 +77,36 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_tests: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          subject: string
+          time_limit_minutes: number
+          title: string
+          total_questions: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          subject: string
+          time_limit_minutes?: number
+          title: string
+          total_questions?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          subject?: string
+          time_limit_minutes?: number
+          title?: string
+          total_questions?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -315,6 +345,100 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_test_answers: {
+        Row: {
+          answered_at: string
+          attempt_id: string
+          correct_answer: string
+          id: string
+          is_correct: boolean
+          question_number: number
+          user_answer: string | null
+        }
+        Insert: {
+          answered_at?: string
+          attempt_id: string
+          correct_answer: string
+          id?: string
+          is_correct?: boolean
+          question_number: number
+          user_answer?: string | null
+        }
+        Update: {
+          answered_at?: string
+          attempt_id?: string
+          correct_answer?: string
+          id?: string
+          is_correct?: boolean
+          question_number?: number
+          user_answer?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_test_answers_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "user_test_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_test_attempts: {
+        Row: {
+          completed_at: string | null
+          correct_answers: number
+          id: string
+          score_percent: number
+          started_at: string
+          status: string
+          test_id: string | null
+          test_title: string
+          time_spent_seconds: number
+          total_questions: number
+          unanswered: number
+          user_id: string
+          wrong_answers: number
+        }
+        Insert: {
+          completed_at?: string | null
+          correct_answers?: number
+          id?: string
+          score_percent?: number
+          started_at?: string
+          status?: string
+          test_id?: string | null
+          test_title: string
+          time_spent_seconds?: number
+          total_questions: number
+          unanswered?: number
+          user_id: string
+          wrong_answers?: number
+        }
+        Update: {
+          completed_at?: string | null
+          correct_answers?: number
+          id?: string
+          score_percent?: number
+          started_at?: string
+          status?: string
+          test_id?: string | null
+          test_title?: string
+          time_spent_seconds?: number
+          total_questions?: number
+          unanswered?: number
+          user_id?: string
+          wrong_answers?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_test_attempts_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "practice_tests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
