@@ -16,11 +16,13 @@ import {
   X,
   LogOut,
   History,
-  LayoutDashboard
+  LayoutDashboard,
+  Shield
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminRole } from "@/hooks/useAdminRole";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +46,7 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const { itemCount } = useCart();
   const { user, signOut } = useAuth();
+  const { isAdmin } = useAdminRole();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -145,6 +148,15 @@ export function Header() {
                     <History className="w-4 h-4 mr-2" />
                     Lịch sử mua hàng
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => navigate("/admin")}>
+                        <Shield className="w-4 h-4 mr-2" />
+                        Quản trị
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                     <LogOut className="w-4 h-4 mr-2" />
@@ -212,6 +224,14 @@ export function Header() {
                       Lịch sử mua hàng
                     </Button>
                   </Link>
+                  {isAdmin && (
+                    <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start gap-2">
+                        <Shield className="w-4 h-4" />
+                        Quản trị
+                      </Button>
+                    </Link>
+                  )}
                   <Button variant="ghost" className="w-full justify-start gap-2 text-destructive" onClick={handleSignOut}>
                     <LogOut className="w-4 h-4" />
                     Đăng xuất
