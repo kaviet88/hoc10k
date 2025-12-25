@@ -644,6 +644,18 @@ export type Database = {
           user_name: string
         }[]
       }
+      get_practice_questions: {
+        Args: { p_test_id: string }
+        Returns: {
+          audio_url: string
+          id: string
+          listening_blanks: Json
+          options: Json
+          question_number: number
+          question_text: string
+          question_type: string
+        }[]
+      }
       get_user_exam_rank: {
         Args: { exam_id: string; user_uuid: string }
         Returns: {
@@ -657,6 +669,16 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      submit_test_answers: {
+        Args: { p_answers: Json; p_attempt_id: string }
+        Returns: {
+          correct_answer: string
+          explanation: string
+          is_correct: boolean
+          question_number: number
+          user_answer: string
+        }[]
       }
     }
     Enums: {
