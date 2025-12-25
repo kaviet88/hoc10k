@@ -14,7 +14,11 @@ import {
   ChevronLeft,
   HelpCircle,
   CheckCircle2,
-  Loader2
+  Loader2,
+  XCircle,
+  Eye,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -96,6 +100,8 @@ const Practice = () => {
     unanswered: number;
     score: number;
   } | null>(null);
+  const [showReview, setShowReview] = useState(false);
+  const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
 
   // Create test attempt on mount
   useEffect(() => {
@@ -236,6 +242,21 @@ const Practice = () => {
     return "unanswered";
   };
 
+  const getAnswerDisplay = (q: Question, userAnswer: string | number | undefined) => {
+    if (q.type === "multiple_choice" && q.options) {
+      const userIndex = typeof userAnswer === 'number' ? userAnswer : parseInt(userAnswer as string);
+      const correctIndex = typeof q.correctAnswer === 'number' ? q.correctAnswer : parseInt(q.correctAnswer);
+      return {
+        userAnswerText: userAnswer !== undefined ? q.options[userIndex] || userAnswer?.toString() : "Chưa trả lời",
+        correctAnswerText: q.options[correctIndex] || q.correctAnswer.toString(),
+      };
+    }
+    return {
+      userAnswerText: userAnswer !== undefined ? userAnswer.toString() : "Chưa trả lời",
+      correctAnswerText: q.correctAnswer.toString(),
+    };
+  };
+
   // Show results if test completed
   if (testCompleted && testResult) {
     return (
@@ -268,14 +289,95 @@ const Practice = () => {
               </div>
             </div>
 
-            <div className="flex gap-4 justify-center">
+            <div className="flex gap-4 justify-center mb-6">
               <Button variant="outline" onClick={() => navigate("/")}>
                 Về trang chủ
+              </Button>
+              <Button variant="outline" onClick={() => setShowReview(!showReview)}>
+                <Eye className="w-4 h-4 mr-2" />
+                {showReview ? "Ẩn đáp án" : "Xem lại đáp án"}
               </Button>
               <Button onClick={() => window.location.reload()}>
                 Làm lại bài kiểm tra
               </Button>
             </div>
+
+            {/* Answer Review Section */}
+            {showReview && (
+              <div className="mt-8 text-left">
+                <h2 className="text-lg font-semibold text-foreground mb-4 text-center">Xem lại đáp án</h2>
+                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                  {allQuestions.map((q, index) => {
+                    const userAnswer = answers[q.id];
+                    const isCorrect = userAnswer?.toString() === q.correctAnswer.toString();
+                    const isUnanswered = userAnswer === undefined;
+                    const { userAnswerText, correctAnswerText } = getAnswerDisplay(q, userAnswer);
+                    const isExpanded = expandedQuestion === q.id;
+
+                    return (
+                      <div
+                        key={q.id}
+                        className={`border rounded-lg overflow-hidden ${
+                          isCorrect 
+                            ? "border-success/50 bg-success/5" 
+                            : isUnanswered 
+                            ? "border-muted bg-muted/20" 
+                            : "border-destructive/50 bg-destructive/5"
+                        }`}
+                      >
+                        <button
+                          onClick={() => setExpandedQuestion(isExpanded ? null : q.id)}
+                          className="w-full p-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            {isCorrect ? (
+                              <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
+                            ) : isUnanswered ? (
+                              <div className="w-5 h-5 rounded-full border-2 border-muted-foreground flex-shrink-0" />
+                            ) : (
+                              <XCircle className="w-5 h-5 text-destructive flex-shrink-0" />
+                            )}
+                            <span className="font-medium text-foreground">Câu {index + 1}</span>
+                            <Badge variant="outline" className={`text-xs ${
+                              isCorrect ? "text-success border-success" : isUnanswered ? "text-muted-foreground" : "text-destructive border-destructive"
+                            }`}>
+                              {isCorrect ? "Đúng" : isUnanswered ? "Bỏ qua" : "Sai"}
+                            </Badge>
+                          </div>
+                          {isExpanded ? (
+                            <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                          )}
+                        </button>
+
+                        {isExpanded && (
+                          <div className="px-4 pb-4 border-t border-border/50">
+                            <div className="pt-4">
+                              <p className="text-sm text-muted-foreground mb-3 whitespace-pre-wrap">
+                                {q.question}
+                              </p>
+                              <div className="space-y-2">
+                                <div className="flex items-start gap-2">
+                                  <span className="text-sm font-medium text-muted-foreground min-w-[100px]">Bạn chọn:</span>
+                                  <span className={`text-sm ${isCorrect ? "text-success" : isUnanswered ? "text-muted-foreground italic" : "text-destructive"}`}>
+                                    {userAnswerText}
+                                  </span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                  <span className="text-sm font-medium text-muted-foreground min-w-[100px]">Đáp án đúng:</span>
+                                  <span className="text-sm text-success font-medium">{correctAnswerText}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>
