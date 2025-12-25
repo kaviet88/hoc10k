@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { AchievementsBadges } from "@/components/achievements/AchievementsBadges";
 import {
   BookOpen,
   Trophy,
@@ -69,15 +70,22 @@ const Dashboard = () => {
     const fetchData = async () => {
       if (!user) return;
 
-      // Fetch purchase count
-      const { count: purchaseCount } = await supabase
-        .from("purchase_history")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id);
+      // Fetch purchase count and achievements count
+      const [purchaseRes, achievementsRes] = await Promise.all([
+        supabase
+          .from("purchase_history")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id),
+        supabase
+          .from("user_achievements")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id),
+      ]);
 
       setStats((prev) => ({
         ...prev,
-        purchasedCourses: purchaseCount || 0,
+        purchasedCourses: purchaseRes.count || 0,
+        achievements: achievementsRes.count || 0,
       }));
 
       // Fetch user points
@@ -191,6 +199,34 @@ const Dashboard = () => {
     });
 
     setCheckingIn(false);
+  };
+
+  const handleAchievementEarned = async (bonusPoints: number) => {
+    if (!user || bonusPoints <= 0) return;
+
+    const { error } = await supabase
+      .from("user_points")
+      .update({
+        total_points: points.total_points + bonusPoints,
+        available_points: points.available_points + bonusPoints,
+      })
+      .eq("user_id", user.id);
+
+    if (!error) {
+      setPoints((prev) => ({
+        ...prev,
+        total_points: prev.total_points + bonusPoints,
+        available_points: prev.available_points + bonusPoints,
+      }));
+      setStats((prev) => ({
+        ...prev,
+        achievements: prev.achievements + 1,
+      }));
+      toast({
+        title: "Thành tựu mới! 🏆",
+        description: `Bạn đã nhận được ${bonusPoints} điểm thưởng!`,
+      });
+    }
   };
 
   const getUserName = () => {
@@ -441,6 +477,18 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Achievements Section */}
+        {user && (
+          <div className="mt-8">
+            <AchievementsBadges
+              userId={user.id}
+              currentStreak={points.current_streak}
+              totalPoints={points.total_points}
+              onAchievementEarned={handleAchievementEarned}
+            />
+          </div>
+        )}
       </main>
     </div>
   );
