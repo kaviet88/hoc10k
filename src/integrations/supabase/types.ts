@@ -463,7 +463,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_exam_leaderboard: {
+        Args: { exam_id: string; limit_count?: number }
+        Returns: {
+          avatar_url: string
+          completed_at: string
+          correct_answers: number
+          rank: number
+          score_percent: number
+          time_spent_seconds: number
+          total_questions: number
+          user_id: string
+          user_name: string
+        }[]
+      }
+      get_user_exam_rank: {
+        Args: { exam_id: string; user_uuid: string }
+        Returns: {
+          rank: number
+          total_participants: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
