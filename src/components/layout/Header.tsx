@@ -15,7 +15,8 @@ import {
   Search,
   X,
   LogOut,
-  History
+  History,
+  LayoutDashboard
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/contexts/CartContext";
@@ -127,6 +128,10 @@ export function Header() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                    <LayoutDashboard className="w-4 h-4 mr-2" />
+                    Quản lý học tập
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/purchase-history")}>
                     <History className="w-4 h-4 mr-2" />
                     Lịch sử mua hàng
@@ -180,6 +185,12 @@ export function Header() {
               ))}
               {user ? (
                 <>
+                  <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start gap-2">
+                      <LayoutDashboard className="w-4 h-4" />
+                      Quản lý học tập
+                    </Button>
+                  </Link>
                   <Link to="/purchase-history" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start gap-2">
                       <History className="w-4 h-4" />
