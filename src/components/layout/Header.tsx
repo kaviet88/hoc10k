@@ -16,6 +16,7 @@ import {
   X
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useCart } from "@/contexts/CartContext";
 
 const navItems = [
   { icon: Home, label: "Trang chủ", href: "/" },
@@ -23,14 +24,14 @@ const navItems = [
   { icon: GraduationCap, label: "Luyện thi", href: "/practice" },
   { icon: FileText, label: "Tài liệu", href: "/documents" },
   { icon: FileText, label: "Thi thử", href: "/exams" },
-  { icon: ShoppingCart, label: "Mua chương trình", href: "/purchase" },
+  { icon: ShoppingCart, label: "Mua chương trình", href: "/purchase", showBadge: true },
   { icon: Gamepad2, label: "Trò chơi", href: "/games" },
 ];
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-
+  const { itemCount } = useCart();
   return (
     <header className="sticky top-0 z-50 bg-card border-b border-border shadow-card">
       <div className="container mx-auto">
@@ -47,9 +48,14 @@ export function Header() {
           <nav className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => (
               <Link key={item.href} to={item.href}>
-                <Button variant="nav" size="sm" className="gap-1.5">
+                <Button variant="nav" size="sm" className="gap-1.5 relative">
                   <item.icon className="w-4 h-4" />
                   {item.label}
+                  {item.showBadge && itemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {itemCount > 99 ? "99+" : itemCount}
+                    </span>
+                  )}
                 </Button>
               </Link>
             ))}
@@ -116,9 +122,14 @@ export function Header() {
                   to={item.href}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <Button variant="ghost" className="w-full justify-start gap-2">
+                  <Button variant="ghost" className="w-full justify-start gap-2 relative">
                     <item.icon className="w-4 h-4" />
                     {item.label}
+                    {item.showBadge && itemCount > 0 && (
+                      <span className="ml-auto w-5 h-5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                        {itemCount > 99 ? "99+" : itemCount}
+                      </span>
+                    )}
                   </Button>
                 </Link>
               ))}

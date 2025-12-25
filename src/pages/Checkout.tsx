@@ -3,15 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { CartSidebar } from "@/components/checkout/CartSidebar";
 import { FilterSection } from "@/components/checkout/FilterSection";
 import { ProgramList } from "@/components/checkout/ProgramList";
-
-export interface CartItem {
-  id: string;
-  type: string;
-  name: string;
-  duration: string;
-  price: number;
-  addedDate: string;
-}
+import { useCart } from "@/contexts/CartContext";
 
 export interface Program {
   id: string;
@@ -62,32 +54,20 @@ const mockPrograms: Program[] = [
 ];
 
 const Checkout = () => {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const { items, addItem, removeItem, clearCart, isInCart } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [programType, setProgramType] = useState("all");
   const [subject, setSubject] = useState("all");
   const [activeTab, setActiveTab] = useState<"single" | "combo">("single");
 
-  const addToCart = (program: Program) => {
-    if (cartItems.find((item) => item.id === program.id)) return;
-    
-    const newItem: CartItem = {
+  const handleAddToCart = (program: Program) => {
+    addItem({
       id: program.id,
       type: program.type,
       name: program.name,
       duration: program.duration,
       price: program.price,
-      addedDate: new Date().toLocaleDateString("vi-VN"),
-    };
-    setCartItems([...cartItems, newItem]);
-  };
-
-  const removeFromCart = (id: string) => {
-    setCartItems(cartItems.filter((item) => item.id !== id));
-  };
-
-  const clearCart = () => {
-    setCartItems([]);
+    });
   };
 
   const filteredPrograms = mockPrograms.filter((program) => {
@@ -136,15 +116,15 @@ const Checkout = () => {
               programs={filteredPrograms}
               activeTab={activeTab}
               onTabChange={setActiveTab}
-              onAddToCart={addToCart}
-              cartItems={cartItems}
+              onAddToCart={handleAddToCart}
+              isInCart={isInCart}
             />
           </div>
 
           <div className="lg:col-span-1">
             <CartSidebar
-              items={cartItems}
-              onRemoveItem={removeFromCart}
+              items={items}
+              onRemoveItem={removeItem}
               onClearCart={clearCart}
             />
           </div>

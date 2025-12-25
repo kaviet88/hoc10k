@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
-import type { CartItem } from "@/pages/Checkout";
+import type { CartItem } from "@/contexts/CartContext";
 
 interface CartSidebarProps {
   items: CartItem[];
