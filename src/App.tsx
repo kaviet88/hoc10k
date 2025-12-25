@@ -15,6 +15,7 @@ import MyCourses from "./pages/MyCourses";
 import PurchaseHistory from "./pages/PurchaseHistory";
 import Pricing from "./pages/Pricing";
 import Practice from "./pages/Practice";
+import Exams from "./pages/Exams";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,7 +34,7 @@ const App = () => (
               <Route path="/lessons/:id" element={<LessonDetail />} />
               <Route path="/practice" element={<Practice />} />
               <Route path="/documents" element={<Index />} />
-              <Route path="/exams" element={<Index />} />
+              <Route path="/exams" element={<Exams />} />
               <Route path="/purchase" element={<Checkout />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/auth" element={<Auth />} />
