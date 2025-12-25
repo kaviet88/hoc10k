@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AttemptReviewDialog } from "@/components/exams/AttemptReviewDialog";
 import {
   ChevronLeft,
   Clock,
@@ -45,10 +46,13 @@ interface TestAttempt {
   id: string;
   score_percent: number;
   correct_answers: number;
+  wrong_answers: number;
+  unanswered: number;
   total_questions: number;
   completed_at: string;
   time_spent_seconds: number;
   status: string;
+  test_title: string;
 }
 
 interface LeaderboardEntry {
@@ -75,6 +79,13 @@ const ExamPreview = () => {
   const [userRank, setUserRank] = useState<{ rank: number; total: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedExamId, setSelectedExamId] = useState<string | null>(examId || null);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [selectedAttempt, setSelectedAttempt] = useState<TestAttempt | null>(null);
+
+  const handleReviewAttempt = (attempt: TestAttempt) => {
+    setSelectedAttempt(attempt);
+    setReviewDialogOpen(true);
+  };
 
   useEffect(() => {
     const fetchExamData = async () => {
@@ -373,7 +384,10 @@ const ExamPreview = () => {
                           {formatDate(attempt.completed_at)}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
-                          <button className="text-xs text-primary hover:underline flex items-center gap-1">
+                          <button 
+                            onClick={() => handleReviewAttempt(attempt)}
+                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                          >
                             <Eye className="w-3 h-3" />
                             Xem chi tiết
                           </button>
@@ -507,6 +521,13 @@ const ExamPreview = () => {
             )}
           </div>
         </div>
+
+        {/* Attempt Review Dialog */}
+        <AttemptReviewDialog
+          open={reviewDialogOpen}
+          onOpenChange={setReviewDialogOpen}
+          attempt={selectedAttempt}
+        />
       </main>
     </div>
   );
