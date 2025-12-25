@@ -108,28 +108,35 @@ const Practice = () => {
 
   const totalTime = 30 * 60;
 
-  // Fetch questions from database
+  // Fetch questions from database using secure function (no correct answers exposed)
   useEffect(() => {
     const fetchQuestions = async () => {
       setLoadingQuestions(true);
       
       if (examId) {
+        // Use secure RPC function that doesn't expose correct answers
         const { data, error } = await supabase
-          .from("practice_test_questions")
-          .select("*")
-          .eq("test_id", examId)
-          .order("question_number");
+          .rpc("get_practice_questions", { p_test_id: examId });
 
         if (!error && data && data.length > 0) {
-          const mappedQuestions: Question[] = data.map((q) => ({
+          const mappedQuestions: Question[] = data.map((q: {
+            id: string;
+            question_number: number;
+            question_text: string;
+            question_type: string;
+            options: string[] | null;
+            audio_url: string | null;
+            listening_blanks: { id: string; label: string; placeholder: string }[] | null;
+          }) => ({
             id: q.question_number,
             type: q.question_type as Question["type"],
             question: q.question_text,
-            options: Array.isArray(q.options) ? (q.options as unknown as string[]) : undefined,
-            correctAnswer: q.question_type === "multiple_choice" ? parseInt(q.correct_answer) : q.correct_answer,
+            options: Array.isArray(q.options) ? q.options : undefined,
+            // No correct answer available until submission - use placeholder
+            correctAnswer: "",
             points: 1,
             audioUrl: q.audio_url || undefined,
-            listeningBlanks: q.listening_blanks as { id: string; label: string; placeholder: string }[] | undefined,
+            listeningBlanks: q.listening_blanks || undefined,
           }));
           setQuestions(mappedQuestions);
         } else {
@@ -240,52 +247,62 @@ const Practice = () => {
 
     setSubmitting(true);
 
-    // Calculate results
+    // Prepare answers for secure submission
+    const answersPayload = questions.map((q) => ({
+      question_number: q.id,
+      user_answer: answers[q.id]?.toString() || "",
+    }));
+
+    // Use secure RPC function to submit and get results with correct answers
+    const { data: results, error } = await supabase
+      .rpc("submit_test_answers", {
+        p_attempt_id: attemptId,
+        p_answers: answersPayload,
+      });
+
+    if (error) {
+      console.error("Submit error:", error);
+      toast({
+        title: "Lỗi nộp bài",
+        description: error.message,
+        variant: "destructive",
+      });
+      setSubmitting(false);
+      return;
+    }
+
+    // Calculate results from server response
     let correct = 0;
     let wrong = 0;
     let unanswered = 0;
 
-    const answersToInsert = questions.map((q) => {
-      const userAnswer = answers[q.id];
-      const correctAnswer = q.correctAnswer.toString();
-      const isCorrect = userAnswer?.toString() === correctAnswer;
-      
-      if (userAnswer === undefined) {
-        unanswered++;
-      } else if (isCorrect) {
-        correct++;
-      } else {
-        wrong++;
-      }
+    if (results && Array.isArray(results)) {
+      results.forEach((r: { is_correct: boolean; user_answer: string | null }) => {
+        if (!r.user_answer || r.user_answer === "") {
+          unanswered++;
+        } else if (r.is_correct) {
+          correct++;
+        } else {
+          wrong++;
+        }
+      });
 
-      return {
-        attempt_id: attemptId,
-        question_number: q.id,
-        user_answer: userAnswer?.toString() || null,
-        correct_answer: correctAnswer,
-        is_correct: isCorrect,
-      };
-    });
+      // Update questions with correct answers from server
+      setQuestions((prev) =>
+        prev.map((q) => {
+          const result = results.find((r: { question_number: number; correct_answer: string }) => r.question_number === q.id);
+          if (result) {
+            return {
+              ...q,
+              correctAnswer: q.type === "multiple_choice" ? parseInt(result.correct_answer) : result.correct_answer,
+            };
+          }
+          return q;
+        })
+      );
+    }
 
     const scorePercent = Math.round((correct / questions.length) * 100);
-    const timeSpent = totalTime - timeRemaining;
-
-    // Save answers
-    await supabase.from("user_test_answers").insert(answersToInsert);
-
-    // Update attempt
-    await supabase
-      .from("user_test_attempts")
-      .update({
-        correct_answers: correct,
-        wrong_answers: wrong,
-        unanswered: unanswered,
-        score_percent: scorePercent,
-        time_spent_seconds: timeSpent,
-        completed_at: new Date().toISOString(),
-        status: "completed",
-      })
-      .eq("id", attemptId);
 
     setTestResult({ correct, wrong, unanswered, score: scorePercent });
     setTestCompleted(true);
