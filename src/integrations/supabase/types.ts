@@ -77,6 +77,69 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_mindmaps: {
+        Row: {
+          created_at: string
+          id: string
+          lesson_id: string
+          nodes: Json
+          program_id: string
+          root_label: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lesson_id: string
+          nodes?: Json
+          program_id: string
+          root_label: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lesson_id?: string
+          nodes?: Json
+          program_id?: string
+          root_label?: string
+        }
+        Relationships: []
+      }
+      lesson_quizzes: {
+        Row: {
+          correct_answer: number
+          created_at: string
+          explanation: string | null
+          id: string
+          lesson_id: string
+          options: Json
+          program_id: string
+          question: string
+          question_order: number
+        }
+        Insert: {
+          correct_answer: number
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          lesson_id: string
+          options?: Json
+          program_id: string
+          question: string
+          question_order?: number
+        }
+        Update: {
+          correct_answer?: number
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          lesson_id?: string
+          options?: Json
+          program_id?: string
+          question?: string
+          question_order?: number
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string

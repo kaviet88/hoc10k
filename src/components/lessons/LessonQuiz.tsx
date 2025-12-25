@@ -1,22 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, RotateCcw, Trophy, ArrowRight } from "lucide-react";
+import { CheckCircle2, XCircle, RotateCcw, Trophy, ArrowRight, Loader2, HelpCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface QuizQuestion {
   id: string;
   question: string;
   options: string[];
-  correctAnswer: number;
-  explanation: string;
+  correct_answer: number;
+  explanation: string | null;
 }
 
 interface LessonQuizProps {
+  lessonId: string;
+  programId: string;
   lessonTitle: string;
 }
 
-export const LessonQuiz = ({ lessonTitle }: LessonQuizProps) => {
+export const LessonQuiz = ({ lessonId, programId, lessonTitle }: LessonQuizProps) => {
+  const [loading, setLoading] = useState(true);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -24,49 +29,31 @@ export const LessonQuiz = ({ lessonTitle }: LessonQuizProps) => {
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [quizCompleted, setQuizCompleted] = useState(false);
 
-  // Sample quiz data - in a real app, this would come from the database
-  const questions: QuizQuestion[] = [
-    {
-      id: "q1",
-      question: 'Từ nào sau đây là danh từ KHÔNG đếm được?',
-      options: ["Apple", "Water", "Book", "Cat"],
-      correctAnswer: 1,
-      explanation: '"Water" (nước) là danh từ không đếm được vì không thể đếm trực tiếp.',
-    },
-    {
-      id: "q2",
-      question: 'Câu nào sau đây đúng ngữ pháp?',
-      options: ["I have a water", "I have water", "I have two waters", "I have an water"],
-      correctAnswer: 1,
-      explanation: 'Danh từ không đếm được như "water" không dùng mạo từ a/an.',
-    },
-    {
-      id: "q3",
-      question: "Điền từ thích hợp: I need ___ milk for the recipe.",
-      options: ["a", "an", "some", "many"],
-      correctAnswer: 2,
-      explanation: 'Với danh từ không đếm được, ta dùng "some" thay vì "a/an" hoặc "many".',
-    },
-    {
-      id: "q4",
-      question: "Từ nào sau đây là danh từ ĐẾM ĐƯỢC?",
-      options: ["Rice", "Information", "Student", "Bread"],
-      correctAnswer: 2,
-      explanation: '"Student" là danh từ đếm được, có thể nói "one student, two students".',
-    },
-    {
-      id: "q5",
-      question: 'Chọn câu đúng:',
-      options: [
-        "There are many informations",
-        "There is much information",
-        "There are much information",
-        "There is many informations",
-      ],
-      correctAnswer: 1,
-      explanation: '"Information" là danh từ không đếm được, dùng với "much", không thêm "s".',
-    },
-  ];
+  useEffect(() => {
+    fetchQuizData();
+  }, [lessonId, programId]);
+
+  const fetchQuizData = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("lesson_quizzes")
+      .select("*")
+      .eq("lesson_id", lessonId)
+      .eq("program_id", programId)
+      .order("question_order");
+
+    if (data && !error) {
+      const formattedQuestions = data.map((q) => ({
+        id: q.id,
+        question: q.question,
+        options: q.options as string[],
+        correct_answer: q.correct_answer,
+        explanation: q.explanation,
+      }));
+      setQuestions(formattedQuestions);
+    }
+    setLoading(false);
+  };
 
   const handleSelectAnswer = (index: number) => {
     if (showResult) return;
@@ -82,7 +69,7 @@ export const LessonQuiz = ({ lessonTitle }: LessonQuizProps) => {
       return;
     }
 
-    const isCorrect = selectedAnswer === questions[currentQuestion].correctAnswer;
+    const isCorrect = selectedAnswer === questions[currentQuestion].correct_answer;
     if (isCorrect) {
       setScore((prev) => prev + 1);
     }
@@ -110,8 +97,25 @@ export const LessonQuiz = ({ lessonTitle }: LessonQuizProps) => {
     setQuizCompleted(false);
   };
 
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[300px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="p-6 text-center min-h-[300px] flex flex-col items-center justify-center">
+        <HelpCircle className="w-12 h-12 text-muted-foreground mb-4" />
+        <p className="text-muted-foreground">Chưa có câu hỏi quiz cho bài học này</p>
+      </div>
+    );
+  }
+
   const currentQ = questions[currentQuestion];
-  const isCorrect = selectedAnswer === currentQ.correctAnswer;
+  const isCorrect = selectedAnswer === currentQ.correct_answer;
   const percentage = Math.round((score / questions.length) * 100);
 
   if (quizCompleted) {
@@ -133,7 +137,7 @@ export const LessonQuiz = ({ lessonTitle }: LessonQuizProps) => {
 
           <div className="flex items-center justify-center gap-2 flex-wrap">
             {answers.map((ans, index) => {
-              const isAnswerCorrect = ans === questions[index].correctAnswer;
+              const isAnswerCorrect = ans === questions[index].correct_answer;
               return (
                 <div
                   key={index}
@@ -174,7 +178,7 @@ export const LessonQuiz = ({ lessonTitle }: LessonQuizProps) => {
               key={index}
               className={`w-2 h-2 rounded-full transition-colors ${
                 index < currentQuestion
-                  ? answers[index] === questions[index].correctAnswer
+                  ? answers[index] === questions[index].correct_answer
                     ? "bg-success"
                     : "bg-destructive"
                   : index === currentQuestion
@@ -197,7 +201,7 @@ export const LessonQuiz = ({ lessonTitle }: LessonQuizProps) => {
         <div className="space-y-3">
           {currentQ.options.map((option, index) => {
             const isSelected = selectedAnswer === index;
-            const isCorrectAnswer = index === currentQ.correctAnswer;
+            const isCorrectAnswer = index === currentQ.correct_answer;
             let optionClass = "border-border hover:border-primary/50 hover:bg-primary/5";
 
             if (showResult) {
@@ -258,7 +262,7 @@ export const LessonQuiz = ({ lessonTitle }: LessonQuizProps) => {
       </div>
 
       {/* Explanation */}
-      {showResult && (
+      {showResult && currentQ.explanation && (
         <div
           className={`rounded-xl p-4 mb-6 ${
             isCorrect ? "bg-success/10 border border-success/20" : "bg-destructive/10 border border-destructive/20"
