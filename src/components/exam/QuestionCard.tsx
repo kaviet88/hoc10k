@@ -23,6 +23,7 @@ export interface Question {
   correctAnswer: string | number;
   points: number;
   blanks?: { id: string; options: string[] }[];
+  listeningBlanks?: { id: string; label: string; placeholder?: string }[];
 }
 
 interface QuestionCardProps {
@@ -31,8 +32,10 @@ interface QuestionCardProps {
   totalQuestions: number;
   selectedAnswer: string | number | undefined;
   dropdownAnswers?: Record<string, string>;
+  listeningAnswers?: Record<string, string>;
   onAnswerChange: (value: string | number) => void;
   onDropdownChange?: (blankId: string, value: string) => void;
+  onListeningChange?: (blankId: string, value: string) => void;
 }
 
 // Audio Player Component
@@ -150,8 +153,10 @@ export const QuestionCard = ({
   totalQuestions,
   selectedAnswer,
   dropdownAnswers = {},
+  listeningAnswers = {},
   onAnswerChange,
   onDropdownChange,
+  onListeningChange,
 }: QuestionCardProps) => {
   const typeInfo = getQuestionTypeLabel(question.type);
   const TypeIcon = typeInfo.icon;
@@ -241,6 +246,37 @@ export const QuestionCard = ({
         );
 
       case "listening":
+        // If there are multiple blanks defined
+        if (question.listeningBlanks && question.listeningBlanks.length > 0) {
+          return (
+            <div className="mt-6 space-y-4">
+              {question.listeningBlanks.map((blank, index) => (
+                <div key={blank.id} className="flex items-center gap-3">
+                  <span className="text-foreground font-medium min-w-fit">
+                    {blank.label}
+                  </span>
+                  <Input
+                    type="text"
+                    placeholder={blank.placeholder || "Nhập câu trả lời..."}
+                    value={listeningAnswers[blank.id] || ""}
+                    onChange={(e) => onListeningChange?.(blank.id, e.target.value)}
+                    className="flex-1 border-2 border-primary/30 focus:border-primary bg-card"
+                  />
+                </div>
+              ))}
+              
+              {/* Progress indicator */}
+              <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 border-t">
+                <span>Tiến độ:</span>
+                <span>
+                  {Object.values(listeningAnswers).filter(v => v && v.trim()).length} / {question.listeningBlanks.length}
+                </span>
+              </div>
+            </div>
+          );
+        }
+        
+        // Single input fallback
         return (
           <div className="mt-6">
             <Input
