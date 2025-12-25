@@ -114,6 +114,7 @@ export type Database = {
           lesson_order: number
           lesson_title: string
           program_id: string
+          thumbnail_url: string | null
           video_url: string | null
         }
         Insert: {
@@ -125,6 +126,7 @@ export type Database = {
           lesson_order?: number
           lesson_title: string
           program_id: string
+          thumbnail_url?: string | null
           video_url?: string | null
         }
         Update: {
@@ -136,6 +138,7 @@ export type Database = {
           lesson_order?: number
           lesson_title?: string
           program_id?: string
+          thumbnail_url?: string | null
           video_url?: string | null
         }
         Relationships: []
