@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { 
   ChevronDown, 
   Play, 
+  Pause,
   Image, 
   Mic, 
   FileText, 
@@ -20,7 +21,11 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
-  Loader2
+  Loader2,
+  Volume2,
+  VolumeX,
+  Maximize,
+  Settings
 } from "lucide-react";
 
 interface Lesson {
@@ -57,6 +62,13 @@ const LessonDetail = () => {
   const [activeDay, setActiveDay] = useState<number | null>(null);
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
   const [marking, setMarking] = useState(false);
+  
+  // Video player state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const videoRef = useState<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     if (programId) {
@@ -373,7 +385,69 @@ const LessonDetail = () => {
               <div className="p-6">
                 <h2 className="text-xl font-bold text-foreground mb-6">{activeLesson?.lesson_title || "Bài học"}</h2>
                 
-                {/* Content Image */}
+                {/* Video Player */}
+                <div className="rounded-xl overflow-hidden bg-foreground mb-6 relative group">
+                  <div className="aspect-video relative">
+                    <video
+                      className="w-full h-full object-cover"
+                      poster="https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=800&auto=format&fit=crop"
+                    >
+                      <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                    
+                    {/* Play button overlay */}
+                    {!isPlaying && (
+                      <button 
+                        onClick={() => setIsPlaying(true)}
+                        className="absolute inset-0 flex items-center justify-center bg-black/30 transition-opacity group-hover:bg-black/40"
+                      >
+                        <div className="w-20 h-20 rounded-full bg-white/90 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                          <Play className="w-8 h-8 text-foreground ml-1" fill="currentColor" />
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Video Controls */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Progress bar */}
+                    <div className="w-full h-1 bg-white/30 rounded-full mb-3 cursor-pointer">
+                      <div className="h-full bg-primary rounded-full w-1/3 relative">
+                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow" />
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <button 
+                          onClick={() => setIsPlaying(!isPlaying)}
+                          className="text-white hover:text-primary transition-colors"
+                        >
+                          {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                        </button>
+                        <button 
+                          onClick={() => setIsMuted(!isMuted)}
+                          className="text-white hover:text-primary transition-colors"
+                        >
+                          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                        </button>
+                        <span className="text-white text-sm">2:15 / 6:49</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <button className="text-white hover:text-primary transition-colors">
+                          <Settings className="w-5 h-5" />
+                        </button>
+                        <button className="text-white hover:text-primary transition-colors">
+                          <Maximize className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lesson Content Card */}
                 <div className="rounded-xl overflow-hidden bg-gradient-to-br from-accent/10 to-success/10 p-4 mb-6">
                   <div className="bg-card rounded-lg p-6 shadow-card">
                     <h3 className="text-center text-lg font-bold text-primary mb-4">
