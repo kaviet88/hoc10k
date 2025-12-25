@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { AchievementsBadges } from "@/components/achievements/AchievementsBadges";
+import { ContinueLearningWidget } from "@/components/dashboard/ContinueLearningWidget";
 import {
   BookOpen,
   Trophy,
@@ -292,6 +293,9 @@ const Dashboard = () => {
             </Link>
           </div>
         </div>
+
+        {/* Continue Learning Widget */}
+        {user && <ContinueLearningWidget userId={user.id} />}
 
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
