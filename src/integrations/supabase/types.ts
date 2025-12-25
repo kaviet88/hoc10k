@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      check_in_history: {
+        Row: {
+          bonus_points: number
+          check_in_date: string
+          created_at: string
+          id: string
+          points_earned: number
+          streak_day: number
+          user_id: string
+        }
+        Insert: {
+          bonus_points?: number
+          check_in_date: string
+          created_at?: string
+          id?: string
+          points_earned?: number
+          streak_day?: number
+          user_id: string
+        }
+        Update: {
+          bonus_points?: number
+          check_in_date?: string
+          created_at?: string
+          id?: string
+          points_earned?: number
+          streak_day?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -106,6 +136,45 @@ export type Database = {
           program_id?: string
           program_name?: string
           program_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_points: {
+        Row: {
+          available_points: number
+          created_at: string
+          current_streak: number
+          id: string
+          last_check_in: string | null
+          longest_streak: number
+          total_points: number
+          updated_at: string
+          used_points: number
+          user_id: string
+        }
+        Insert: {
+          available_points?: number
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_check_in?: string | null
+          longest_streak?: number
+          total_points?: number
+          updated_at?: string
+          used_points?: number
+          user_id: string
+        }
+        Update: {
+          available_points?: number
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_check_in?: string | null
+          longest_streak?: number
+          total_points?: number
+          updated_at?: string
+          used_points?: number
           user_id?: string
         }
         Relationships: []

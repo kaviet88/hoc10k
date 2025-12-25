@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import {
   BookOpen,
   Trophy,
@@ -26,11 +27,15 @@ interface UserStats {
   totalExams: number;
   achievements: number;
   purchasedCourses: number;
-  totalPoints: number;
-  availablePoints: number;
-  usedPoints: number;
-  loginStreak: number;
-  lastCheckIn: string | null;
+}
+
+interface UserPoints {
+  total_points: number;
+  available_points: number;
+  used_points: number;
+  current_streak: number;
+  longest_streak: number;
+  last_check_in: string | null;
 }
 
 const Dashboard = () => {
@@ -44,11 +49,14 @@ const Dashboard = () => {
     totalExams: 0,
     achievements: 0,
     purchasedCourses: 0,
-    totalPoints: 0,
-    availablePoints: 0,
-    usedPoints: 0,
-    loginStreak: 0,
-    lastCheckIn: null,
+  });
+  const [points, setPoints] = useState<UserPoints>({
+    total_points: 0,
+    available_points: 0,
+    used_points: 0,
+    current_streak: 0,
+    longest_streak: 0,
+    last_check_in: null,
   });
 
   useEffect(() => {
@@ -58,7 +66,7 @@ const Dashboard = () => {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       if (!user) return;
 
       // Fetch purchase count
@@ -71,33 +79,118 @@ const Dashboard = () => {
         ...prev,
         purchasedCourses: purchaseCount || 0,
       }));
+
+      // Fetch user points
+      const { data: pointsData } = await supabase
+        .from("user_points")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (pointsData) {
+        setPoints({
+          total_points: pointsData.total_points,
+          available_points: pointsData.available_points,
+          used_points: pointsData.used_points,
+          current_streak: pointsData.current_streak,
+          longest_streak: pointsData.longest_streak,
+          last_check_in: pointsData.last_check_in,
+        });
+      }
+
       setLoading(false);
     };
 
     if (user) {
-      fetchStats();
+      fetchData();
     }
   }, [user]);
 
-  const handleCheckIn = async () => {
-    setCheckingIn(true);
-    // Simulate check-in
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setStats((prev) => ({
-      ...prev,
-      loginStreak: prev.loginStreak + 1,
-      totalPoints: prev.totalPoints + 10,
-      availablePoints: prev.availablePoints + 10,
-      lastCheckIn: new Date().toISOString(),
-    }));
-    setCheckingIn(false);
-  };
-
   const canCheckIn = () => {
-    if (!stats.lastCheckIn) return true;
-    const lastDate = new Date(stats.lastCheckIn).toDateString();
+    if (!points.last_check_in) return true;
+    const lastDate = new Date(points.last_check_in).toDateString();
     const today = new Date().toDateString();
     return lastDate !== today;
+  };
+
+  const handleCheckIn = async () => {
+    if (!user || !canCheckIn()) return;
+    
+    setCheckingIn(true);
+
+    const today = new Date().toISOString().split("T")[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+    
+    // Calculate new streak
+    let newStreak = 1;
+    if (points.last_check_in === yesterday) {
+      newStreak = points.current_streak + 1;
+    }
+
+    // Calculate bonus points for milestones (every 7 days)
+    const bonusPoints = newStreak % 7 === 0 ? 50 : 0;
+    const pointsEarned = 10 + bonusPoints;
+
+    // Insert check-in record
+    const { error: checkInError } = await supabase
+      .from("check_in_history")
+      .insert({
+        user_id: user.id,
+        check_in_date: today,
+        points_earned: 10,
+        streak_day: newStreak,
+        bonus_points: bonusPoints,
+      });
+
+    if (checkInError) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể điểm danh. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+      setCheckingIn(false);
+      return;
+    }
+
+    // Update user points
+    const newLongestStreak = Math.max(newStreak, points.longest_streak);
+    const { error: updateError } = await supabase
+      .from("user_points")
+      .update({
+        total_points: points.total_points + pointsEarned,
+        available_points: points.available_points + pointsEarned,
+        current_streak: newStreak,
+        longest_streak: newLongestStreak,
+        last_check_in: today,
+      })
+      .eq("user_id", user.id);
+
+    if (updateError) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật điểm. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+      setCheckingIn(false);
+      return;
+    }
+
+    // Update local state
+    setPoints({
+      ...points,
+      total_points: points.total_points + pointsEarned,
+      available_points: points.available_points + pointsEarned,
+      current_streak: newStreak,
+      longest_streak: newLongestStreak,
+      last_check_in: today,
+    });
+
+    toast({
+      title: "Điểm danh thành công! 🎉",
+      description: `Bạn nhận được ${pointsEarned} điểm${bonusPoints > 0 ? " (bao gồm bonus " + bonusPoints + " điểm!)" : ""}`,
+    });
+
+    setCheckingIn(false);
   };
 
   const getUserName = () => {
@@ -106,9 +199,9 @@ const Dashboard = () => {
   };
 
   const getLevel = () => {
-    if (stats.totalPoints < 100) return { name: "Học viên mới", icon: "🐼" };
-    if (stats.totalPoints < 500) return { name: "Học viên tích cực", icon: "🦊" };
-    if (stats.totalPoints < 1000) return { name: "Học viên xuất sắc", icon: "🦁" };
+    if (points.total_points < 100) return { name: "Học viên mới", icon: "🐼" };
+    if (points.total_points < 500) return { name: "Học viên tích cực", icon: "🦊" };
+    if (points.total_points < 1000) return { name: "Học viên xuất sắc", icon: "🦁" };
     return { name: "Học viên VIP", icon: "🏆" };
   };
 
@@ -124,7 +217,7 @@ const Dashboard = () => {
   }
 
   const level = getLevel();
-  const streakProgress = Math.min((stats.loginStreak / 7) * 100, 100);
+  const streakProgress = Math.min((points.current_streak / 7) * 100, 100);
 
   return (
     <div className="min-h-screen bg-background">
@@ -139,7 +232,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold">
-                  Chào mừng bạn đến với Học10k! 👋
+                  Chào mừng {getUserName()} đến với Học10k! 👋
                 </h1>
                 <p className="text-primary-foreground/80 mt-1">
                   Chúc bạn có những giờ học thật vui vẻ!
@@ -185,7 +278,7 @@ const Dashboard = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl font-bold text-foreground">
-                      {stats.totalPoints}
+                      {points.total_points}
                     </span>
                     <span className="text-lg">🪙</span>
                   </div>
@@ -198,7 +291,7 @@ const Dashboard = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl font-bold text-success">
-                      {stats.availablePoints}
+                      {points.available_points}
                     </span>
                     <span className="text-lg">🪙</span>
                   </div>
@@ -211,7 +304,7 @@ const Dashboard = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl font-bold text-foreground">
-                      {stats.usedPoints}
+                      {points.used_points}
                     </span>
                     <span className="text-lg">🪙</span>
                   </div>
@@ -257,7 +350,7 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <div className="text-3xl font-bold text-foreground">
-                    {stats.loginStreak} ngày
+                    {points.current_streak} ngày
                   </div>
                   <p className="text-sm text-muted-foreground">Chuỗi đăng nhập</p>
                 </div>
@@ -270,7 +363,7 @@ const Dashboard = () => {
                 </div>
                 <Progress value={streakProgress} className="h-2" />
                 <p className="text-sm text-muted-foreground mt-2">
-                  Còn {7 - (stats.loginStreak % 7)} ngày để đạt milestone 1 tuần
+                  Còn {7 - (points.current_streak % 7)} ngày để đạt milestone 1 tuần
                 </p>
               </div>
 
@@ -287,7 +380,7 @@ const Dashboard = () => {
               </Button>
 
               <p className="text-sm text-muted-foreground text-center mb-4">
-                Nhận 10 điểm mỗi ngày + bonus cho milestone
+                Nhận 10 điểm mỗi ngày + bonus 50 điểm khi đạt milestone
               </p>
 
               <Button variant="outline" className="w-full gap-2">
