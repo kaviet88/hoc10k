@@ -108,7 +108,12 @@ export function Header() {
             </div>
 
             {/* Notifications */}
-            <Button variant="ghost" size="icon" className="relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="relative"
+              onClick={() => navigate("/notifications")}
+            >
               <Bell className="w-4 h-4" />
               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
                 3
