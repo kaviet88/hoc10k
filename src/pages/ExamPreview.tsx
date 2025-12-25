@@ -53,11 +53,14 @@ interface TestAttempt {
 
 interface LeaderboardEntry {
   rank: number;
-  name: string;
-  score: number;
-  total: number;
-  time: string;
-  avatar?: string;
+  user_id: string;
+  user_name: string;
+  avatar_url: string | null;
+  score_percent: number;
+  correct_answers: number;
+  total_questions: number;
+  time_spent_seconds: number;
+  completed_at: string;
 }
 
 const ExamPreview = () => {
@@ -68,15 +71,10 @@ const ExamPreview = () => {
   const [exam, setExam] = useState<Exam | null>(null);
   const [relatedExams, setRelatedExams] = useState<Exam[]>([]);
   const [userAttempts, setUserAttempts] = useState<TestAttempt[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [userRank, setUserRank] = useState<{ rank: number; total: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedExamId, setSelectedExamId] = useState<string | null>(examId || null);
-
-  // Mock leaderboard data (would come from database in production)
-  const leaderboard: LeaderboardEntry[] = [
-    { rank: 1, name: "Thái Bảo", score: 127, total: 138, time: "12 phút 27 giây" },
-    { rank: 2, name: "Mon", score: 127, total: 138, time: "20 phút 4 giây" },
-    { rank: 3, name: "Minh Anh", score: 125, total: 138, time: "18 phút 32 giây" },
-  ];
 
   useEffect(() => {
     const fetchExamData = async () => {
@@ -111,6 +109,12 @@ const ExamPreview = () => {
 
       setRelatedExams(related || []);
 
+      // Fetch leaderboard data
+      const { data: leaderboardData } = await supabase
+        .rpc('get_exam_leaderboard', { exam_id: examId, limit_count: 10 });
+
+      setLeaderboard(leaderboardData || []);
+
       // Fetch user's attempts for this exam
       if (user) {
         const { data: attempts } = await supabase
@@ -122,6 +126,14 @@ const ExamPreview = () => {
           .order("completed_at", { ascending: false });
 
         setUserAttempts(attempts || []);
+
+        // Fetch user's rank
+        const { data: rankData } = await supabase
+          .rpc('get_user_exam_rank', { exam_id: examId, user_uuid: user.id });
+
+        if (rankData && rankData.length > 0) {
+          setUserRank({ rank: rankData[0].rank, total: rankData[0].total_participants });
+        }
       }
 
       setLoading(false);
@@ -163,11 +175,18 @@ const ExamPreview = () => {
     );
   };
 
-  const getRankIcon = (rank: number) => {
-    if (rank === 1) return "🥇";
-    if (rank === 2) return "🥈";
-    if (rank === 3) return "🥉";
-    return `${rank}`;
+  const getRankIcon = (rank: number | bigint) => {
+    const rankNum = Number(rank);
+    if (rankNum === 1) return "🥇";
+    if (rankNum === 2) return "🥈";
+    if (rankNum === 3) return "🥉";
+    return `${rankNum}`;
+  };
+
+  const formatLeaderboardTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins} phút ${secs} giây`;
   };
 
   const relatedThumbnails = [examThumb1, examThumb2, examThumb3];
@@ -392,26 +411,62 @@ const ExamPreview = () => {
                 <h3 className="font-semibold text-foreground">Bảng xếp hạng</h3>
               </div>
               
-              <div className="space-y-3">
-                {leaderboard.map((entry) => (
-                  <div
-                    key={entry.rank}
-                    className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg"
-                  >
-                    <span className="text-2xl w-8">{getRankIcon(entry.rank)}</span>
-                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                      <Users className="w-5 h-5 text-primary" />
+              {leaderboard.length > 0 ? (
+                <div className="space-y-3">
+                  {leaderboard.map((entry) => (
+                    <div
+                      key={entry.user_id}
+                      className={`flex items-center gap-4 p-3 rounded-lg ${
+                        user && entry.user_id === user.id 
+                          ? "bg-primary/10 border border-primary/30" 
+                          : "bg-muted/30"
+                      }`}
+                    >
+                      <span className="text-2xl w-8">{getRankIcon(entry.rank)}</span>
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+                        {entry.avatar_url ? (
+                          <img src={entry.avatar_url} alt={entry.user_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Users className="w-5 h-5 text-primary" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground">
+                          {entry.user_name}
+                          {user && entry.user_id === user.id && (
+                            <span className="text-xs text-primary ml-2">(Bạn)</span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-foreground">
+                          {entry.correct_answers}/{entry.total_questions} điểm
+                          <span className="text-sm font-normal text-muted-foreground ml-1">
+                            ({entry.score_percent}%)
+                          </span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatLeaderboardTime(entry.time_spent_seconds)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{entry.name}</p>
+                  ))}
+                  
+                  {userRank && !leaderboard.some(e => user && e.user_id === user.id) && (
+                    <div className="pt-3 border-t">
+                      <p className="text-sm text-muted-foreground text-center">
+                        Xếp hạng của bạn: <span className="font-bold text-primary">#{userRank.rank}</span> / {userRank.total} người tham gia
+                      </p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-foreground">{entry.score}/{entry.total} điểm</p>
-                      <p className="text-xs text-muted-foreground">{entry.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Trophy className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Chưa có ai hoàn thành đề thi này</p>
+                  <p className="text-sm">Hãy là người đầu tiên!</p>
+                </div>
+              )}
             </div>
 
             {/* Related exams */}
