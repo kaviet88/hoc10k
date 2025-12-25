@@ -534,14 +534,22 @@ const LessonDetail = () => {
                   {/* Mind Map Tab */}
                   <TabsContent value="mindmap" className="mt-0">
                     <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl border border-border">
-                      <LessonMindMap lessonTitle={activeLesson?.lesson_title || "Bài học"} />
+                      <LessonMindMap 
+                        lessonId={activeLesson?.lesson_id || "lesson-1"} 
+                        programId={programId || "1"}
+                        lessonTitle={activeLesson?.lesson_title || "Bài học"} 
+                      />
                     </div>
                   </TabsContent>
 
                   {/* Quiz Tab */}
                   <TabsContent value="quiz" className="mt-0">
                     <div className="bg-gradient-to-br from-success/5 to-primary/5 rounded-xl border border-border">
-                      <LessonQuiz lessonTitle={activeLesson?.lesson_title || "Bài học"} />
+                      <LessonQuiz 
+                        lessonId={activeLesson?.lesson_id || "lesson-1"} 
+                        programId={programId || "1"}
+                        lessonTitle={activeLesson?.lesson_title || "Bài học"} 
+                      />
                     </div>
                   </TabsContent>
                 </Tabs>

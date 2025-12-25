@@ -1,59 +1,72 @@
-import { Brain, Lightbulb, BookOpen, Star } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Brain, Lightbulb, BookOpen, Star, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface MindMapChild {
+  id: string;
+  label: string;
+}
 
 interface MindMapNode {
   id: string;
   label: string;
-  icon?: React.ReactNode;
-  children?: MindMapNode[];
   color?: string;
+  children?: MindMapChild[];
 }
 
 interface LessonMindMapProps {
+  lessonId: string;
+  programId: string;
   lessonTitle: string;
 }
 
-export const LessonMindMap = ({ lessonTitle }: LessonMindMapProps) => {
-  // Sample mind map data - in a real app, this would come from the database
-  const mindMapData: MindMapNode = {
-    id: "root",
-    label: "Danh từ",
-    icon: <Brain className="w-5 h-5" />,
-    color: "primary",
-    children: [
-      {
-        id: "countable",
-        label: "Đếm được",
-        icon: <BookOpen className="w-4 h-4" />,
-        color: "accent",
-        children: [
-          { id: "c1", label: "Có số ít/nhiều" },
-          { id: "c2", label: "Dùng a/an" },
-          { id: "c3", label: "Ví dụ: apple, book, cat" },
-        ],
-      },
-      {
-        id: "uncountable",
-        label: "Không đếm được",
-        icon: <Lightbulb className="w-4 h-4" />,
-        color: "success",
-        children: [
-          { id: "u1", label: "Không có số nhiều" },
-          { id: "u2", label: "Không dùng a/an" },
-          { id: "u3", label: "Ví dụ: water, milk, rice" },
-        ],
-      },
-      {
-        id: "tips",
-        label: "Mẹo nhớ",
-        icon: <Star className="w-4 h-4" />,
-        color: "warning",
-        children: [
-          { id: "t1", label: "Đếm trên tay = đếm được" },
-          { id: "t2", label: "Chất lỏng = không đếm được" },
-        ],
-      },
-    ],
+export const LessonMindMap = ({ lessonId, programId, lessonTitle }: LessonMindMapProps) => {
+  const [loading, setLoading] = useState(true);
+  const [rootLabel, setRootLabel] = useState("Chủ đề");
+  const [nodes, setNodes] = useState<MindMapNode[]>([]);
+
+  useEffect(() => {
+    fetchMindMapData();
+  }, [lessonId, programId]);
+
+  const fetchMindMapData = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("lesson_mindmaps")
+      .select("*")
+      .eq("lesson_id", lessonId)
+      .eq("program_id", programId)
+      .maybeSingle();
+
+    if (data && !error) {
+      setRootLabel(data.root_label);
+      setNodes(data.nodes as unknown as MindMapNode[]);
+    }
+    setLoading(false);
   };
+
+  const getNodeIcon = (index: number) => {
+    const icons = [BookOpen, Lightbulb, Star];
+    const Icon = icons[index % icons.length];
+    return <Icon className="w-4 h-4" />;
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[300px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (nodes.length === 0) {
+    return (
+      <div className="p-6 text-center min-h-[300px] flex flex-col items-center justify-center">
+        <Brain className="w-12 h-12 text-muted-foreground mb-4" />
+        <p className="text-muted-foreground">Chưa có sơ đồ tư duy cho bài học này</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -67,8 +80,8 @@ export const LessonMindMap = ({ lessonTitle }: LessonMindMapProps) => {
           {/* Root Node */}
           <div className="flex items-center justify-center mb-8">
             <div className="bg-primary text-primary-foreground px-6 py-3 rounded-full font-bold text-lg shadow-lg flex items-center gap-2 animate-pulse-slow">
-              {mindMapData.icon}
-              {mindMapData.label}
+              <Brain className="w-5 h-5" />
+              {rootLabel}
             </div>
           </div>
 
@@ -79,14 +92,15 @@ export const LessonMindMap = ({ lessonTitle }: LessonMindMapProps) => {
           </div>
 
           {/* Branch Nodes */}
-          <div className="grid grid-cols-3 gap-8 w-full max-w-4xl">
-            {mindMapData.children?.map((branch, index) => {
-              const colors = {
+          <div className={`grid gap-8 w-full max-w-4xl`} style={{ gridTemplateColumns: `repeat(${Math.min(nodes.length, 3)}, 1fr)` }}>
+            {nodes.map((branch, index) => {
+              const colors: Record<string, string> = {
                 accent: "bg-accent/20 border-accent text-accent",
                 success: "bg-success/20 border-success text-success",
                 warning: "bg-warning/20 border-warning text-warning",
+                primary: "bg-primary/20 border-primary text-primary",
               };
-              const colorClass = colors[branch.color as keyof typeof colors] || colors.accent;
+              const colorClass = colors[branch.color || "accent"] || colors.accent;
 
               return (
                 <div key={branch.id} className="flex flex-col items-center">
@@ -97,7 +111,7 @@ export const LessonMindMap = ({ lessonTitle }: LessonMindMapProps) => {
                   <div
                     className={`${colorClass} border-2 px-4 py-2 rounded-xl font-semibold text-sm shadow-md flex items-center gap-2 mb-4`}
                   >
-                    {branch.icon}
+                    {getNodeIcon(index)}
                     {branch.label}
                   </div>
 
