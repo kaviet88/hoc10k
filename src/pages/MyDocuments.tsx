@@ -85,14 +85,14 @@ const MyDocuments = () => {
 
     // Fetch purchased document IDs
     const { data: purchaseIds } = await supabase
-      .from("purchased_documents")
+      .from("purchased_documents" as any)
       .select("id, document_id, purchased_at")
       .eq("user_id", user.id)
       .order("purchased_at", { ascending: false });
 
-    if (purchaseIds && purchaseIds.length > 0) {
+    if (purchaseIds && (purchaseIds as any[]).length > 0) {
       // Fetch the actual documents
-      const docIds = purchaseIds.map((p: { document_id: string }) => p.document_id);
+      const docIds = (purchaseIds as any[]).map((p) => p.document_id);
       const { data: docsData } = await supabase
         .from("documents")
         .select("*")
@@ -101,9 +101,9 @@ const MyDocuments = () => {
       if (docsData) {
         type DocType = { id: string; [key: string]: unknown };
         const docsMap = new Map((docsData as DocType[]).map((d) => [d.id, d]));
-        const enrichedPurchases = purchaseIds
-          .filter((p: { document_id: string }) => docsMap.has(p.document_id))
-          .map((p: { id: string; document_id: string; purchased_at: string }) => ({
+        const enrichedPurchases = (purchaseIds as any[])
+          .filter((p) => docsMap.has(p.document_id))
+          .map((p) => ({
             id: p.id,
             document_id: p.document_id,
             purchased_at: p.purchased_at,
@@ -139,7 +139,7 @@ const MyDocuments = () => {
     }
 
     // Increment download count
-    await supabase.rpc("increment_document_download", { doc_id: docId });
+    await supabase.rpc("increment_document_download" as any, { doc_id: docId });
 
     window.open(fileUrl, "_blank");
 

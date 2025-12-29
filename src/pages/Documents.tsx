@@ -85,12 +85,12 @@ const Documents = () => {
     // Fetch user's purchased documents if logged in
     if (user) {
       const { data: purchasedData } = await supabase
-        .from("purchased_documents")
+        .from("purchased_documents" as any)
         .select("document_id")
         .eq("user_id", user.id);
 
       if (purchasedData) {
-        setPurchasedIds(new Set(purchasedData.map((p: { document_id: string }) => p.document_id)));
+        setPurchasedIds(new Set((purchasedData as any[]).map((p) => p.document_id)));
       }
     }
 
@@ -126,7 +126,7 @@ const Documents = () => {
   );
 
   const handleIncrementView = async (docId: string) => {
-    await supabase.rpc("increment_document_view", { doc_id: docId });
+    await supabase.rpc("increment_document_view" as any, { doc_id: docId });
   };
 
   if (loading) {
