@@ -39,6 +39,7 @@ export const DocumentPaymentDialog = ({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
 
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN").format(price) + " đ";
   };

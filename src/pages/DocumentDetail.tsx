@@ -56,6 +56,8 @@ const DocumentDetail = () => {
   const [downloading, setDownloading] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState("");
+  const [purchasing, setPurchasing] = useState(false);
+
 
   useEffect(() => {
     if (id) {
@@ -160,10 +162,15 @@ const handlePurchase = () => {
       return;
     }
 
+    setPurchasing(true);
+
     // Generate order ID and show payment dialog
     const orderId = `DOC${Date.now().toString().slice(-9)}`;
     setCurrentOrderId(orderId);
     setShowPaymentDialog(true);
+
+    // Reset purchasing state after a short delay
+    setTimeout(() => setPurchasing(false), 500);
   };
 
   const handlePaymentConfirmed = async () => {
@@ -419,9 +426,14 @@ const handlePurchase = () => {
                       className="w-full"
                       size="lg"
                       onClick={handlePurchase}
+                      disabled={purchasing}
                     >
-                      <ShoppingCart className="w-5 h-5 mr-2" />
-                      Mua tài liệu ngay
+                      {purchasing ? (
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      ) : (
+                        <ShoppingCart className="w-5 h-5 mr-2" />
+                      )}
+                      {purchasing ? "Đang xử lý..." : "Mua tài liệu"}
                     </Button>
 
                     {!user && (
@@ -451,8 +463,7 @@ const handlePurchase = () => {
             </Card>
           </div>
         </div>
-
-        </main>
+      </main>
 
       {/* Payment Dialog */}
       <DocumentPaymentDialog
