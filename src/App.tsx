@@ -20,6 +20,9 @@ import ExamList from "./pages/ExamList";
 import ExamPreview from "./pages/ExamPreview";
 import Notifications from "./pages/Notifications";
 import Admin from "./pages/Admin";
+import Documents from "./pages/Documents";
+import DocumentDetail from "./pages/DocumentDetail";
+import MyDocuments from "./pages/MyDocuments";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,7 +40,9 @@ const App = () => (
               <Route path="/lessons" element={<Lessons />} />
               <Route path="/lessons/:id" element={<LessonDetail />} />
               <Route path="/practice" element={<Practice />} />
-              <Route path="/documents" element={<Index />} />
+              <Route path="/documents" element={<Documents />} />
+              <Route path="/documents/:id" element={<DocumentDetail />} />
+              <Route path="/my-documents" element={<MyDocuments />} />
               <Route path="/exams" element={<Exams />} />
               <Route path="/exams/:gradeId/:subjectId" element={<ExamList />} />
               <Route path="/exams/preview/:examId" element={<ExamPreview />} />

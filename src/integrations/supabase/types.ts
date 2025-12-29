@@ -125,6 +125,33 @@ export type Database = {
         }
         Relationships: []
       }
+      purchased_documents: {
+        Row: {
+          id: string
+          user_id: string
+          document_id: string
+          purchased_at: string
+          price: number
+          payment_method: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          document_id: string
+          purchased_at?: string
+          price?: number
+          payment_method?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          document_id?: string
+          purchased_at?: string
+          price?: number
+          payment_method?: string | null
+        }
+        Relationships: []
+      }
       lesson_mindmaps: {
         Row: {
           created_at: string
@@ -781,6 +808,14 @@ export type Database = {
           question_number: number
           user_answer: string
         }[]
+      }
+      increment_document_view: {
+        Args: { doc_id: string }
+        Returns: void
+      }
+      increment_document_download: {
+        Args: { doc_id: string }
+        Returns: void
       }
     }
     Enums: {
