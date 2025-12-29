@@ -77,54 +77,6 @@ export type Database = {
         }
         Relationships: []
       }
-      documents: {
-        Row: {
-          id: string
-          title: string
-          description: string | null
-          thumbnail_url: string | null
-          file_url: string | null
-          badge: string | null
-          badge_color: string
-          view_count: number
-          download_count: number
-          is_free: boolean
-          is_published: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          title: string
-          description?: string | null
-          thumbnail_url?: string | null
-          file_url?: string | null
-          badge?: string | null
-          badge_color?: string
-          view_count?: number
-          download_count?: number
-          is_free?: boolean
-          is_published?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          title?: string
-          description?: string | null
-          thumbnail_url?: string | null
-          file_url?: string | null
-          badge?: string | null
-          badge_color?: string
-          view_count?: number
-          download_count?: number
-          is_free?: boolean
-          is_published?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       lesson_mindmaps: {
         Row: {
           created_at: string
@@ -149,60 +101,6 @@ export type Database = {
           nodes?: Json
           program_id?: string
           root_label?: string
-        }
-        Relationships: []
-      }
-      lessons: {
-        Row: {
-          id: string
-          title: string
-          description: string | null
-          thumbnail_url: string | null
-          price: number
-          original_price: number | null
-          duration: string
-          view_count: number
-          comment_count: number
-          badge: string | null
-          badge_color: string
-          program_id: string
-          is_published: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          title: string
-          description?: string | null
-          thumbnail_url?: string | null
-          price?: number
-          original_price?: number | null
-          duration?: string
-          view_count?: number
-          comment_count?: number
-          badge?: string | null
-          badge_color?: string
-          program_id: string
-          is_published?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          title?: string
-          description?: string | null
-          thumbnail_url?: string | null
-          price?: number
-          original_price?: number | null
-          duration?: string
-          view_count?: number
-          comment_count?: number
-          badge?: string | null
-          badge_color?: string
-          program_id?: string
-          is_published?: boolean
-          created_at?: string
-          updated_at?: string
         }
         Relationships: []
       }
