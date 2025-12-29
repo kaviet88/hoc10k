@@ -8,101 +8,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { BookOpen, Search, Loader2 } from "lucide-react";
 
-interface Course {
+interface Lesson {
   id: string;
   title: string;
-  description: string;
-  thumbnail: string;
-  price: number;
-  duration: string;
-  viewCount: number;
-  commentCount: number;
-  badge: string;
-  badgeColor: "primary" | "success" | "secondary" | "accent";
-  programId: string;
+  description: string | null;
+  thumbnail_url: string | null;
+  price: number | null;
+  duration: string | null;
+  view_count: number | null;
+  comment_count: number | null;
+  badge: string | null;
+  badge_color: string | null;
+  program_id: string | null;
+  is_published: boolean | null;
 }
-
-// Mock courses data - in a real app, this would come from the database
-const mockCourses: Course[] = [
-  {
-    id: "1",
-    programId: "1",
-    title: "Thuyết trình Meet the Animals",
-    description: "Thuyết Trình: Meet the Animals - Khám phá thế giới động vật qua tiếng Anh",
-    thumbnail: "https://images.unsplash.com/photo-1535268244390-4bb3dc9c8c16?w=400",
-    price: 10000,
-    duration: "0 phút",
-    viewCount: 83,
-    commentCount: 0,
-    badge: "Tiếng Anh Cơ Bản",
-    badgeColor: "primary",
-  },
-  {
-    id: "2",
-    programId: "2",
-    title: "Bài tập bổ trợ Starters Movers",
-    description: "Bài tập bổ trợ Stater - Movers giúp học sinh luyện tập kỹ năng",
-    thumbnail: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400",
-    price: 360000,
-    duration: "0 phút",
-    viewCount: 2059,
-    commentCount: 0,
-    badge: "Tiếng Anh Cơ Bản",
-    badgeColor: "primary",
-  },
-  {
-    id: "3",
-    programId: "3",
-    title: "Tiếng Anh Starters 360 ngày",
-    description: "Nội dung học Starters - Độ tuổi phù hợp: Trên 5 tuổi",
-    thumbnail: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=400",
-    price: 10000,
-    duration: "0 phút",
-    viewCount: 7719,
-    commentCount: 0,
-    badge: "Tiếng Anh - Cơ bản",
-    badgeColor: "accent",
-  },
-  {
-    id: "4",
-    programId: "1",
-    title: "Tiếng Anh Movers 360 ngày",
-    description: "Khóa học tiếng Anh Movers dành cho học sinh tiểu học",
-    thumbnail: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400",
-    price: 590000,
-    duration: "365 ngày",
-    viewCount: 6276,
-    commentCount: 0,
-    badge: "Tiếng Anh Cơ Bản",
-    badgeColor: "primary",
-  },
-  {
-    id: "5",
-    programId: "2",
-    title: "Toán Tư Duy Lớp 1",
-    description: "Phát triển tư duy logic và giải quyết vấn đề cho học sinh lớp 1",
-    thumbnail: "https://images.unsplash.com/photo-1509228627152-72ae9ae6848d?w=400",
-    price: 390000,
-    duration: "180 ngày",
-    viewCount: 3456,
-    commentCount: 0,
-    badge: "Toán",
-    badgeColor: "success",
-  },
-  {
-    id: "6",
-    programId: "3",
-    title: "Tiếng Việt Nâng Cao Lớp 2",
-    description: "Nâng cao kỹ năng đọc hiểu và viết văn cho học sinh lớp 2",
-    thumbnail: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400",
-    price: 490000,
-    duration: "365 ngày",
-    viewCount: 2890,
-    commentCount: 0,
-    badge: "Tiếng Việt",
-    badgeColor: "secondary",
-  },
-];
 
 const subjects = ["Tất cả", "Toán", "Tiếng Anh", "Tiếng Việt", "Tiếng Trung"];
 
@@ -111,11 +30,27 @@ const Lessons = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("Tất cả");
   const [purchasedProgramIds, setPurchasedProgramIds] = useState<string[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    fetchLessons();
     fetchPurchasedCourses();
   }, [user]);
+
+  const fetchLessons = async () => {
+    const { data, error } = await supabase
+      .from("lessons")
+      .select("*")
+      .eq("is_published", true)
+      .order("created_at", { ascending: false });
+
+    if (data && !error) {
+      setLessons(data);
+    } else {
+      console.error("Error fetching lessons:", error);
+    }
+  };
 
   const fetchPurchasedCourses = async () => {
     if (!user) {
@@ -134,17 +69,25 @@ const Lessons = () => {
     setLoading(false);
   };
 
-  const filteredCourses = mockCourses.filter((course) => {
-    const matchesSearch = course.title
+  const filteredLessons = lessons.filter((lesson) => {
+    const matchesSearch = lesson.title
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
     const matchesSubject =
-      selectedSubject === "Tất cả" || course.badge.includes(selectedSubject);
+      selectedSubject === "Tất cả" || (lesson.badge && lesson.badge.includes(selectedSubject));
     return matchesSearch && matchesSubject;
   });
 
-  const isPurchased = (programId: string) => {
+  const isPurchased = (programId: string | null) => {
+    if (!programId) return false;
     return purchasedProgramIds.includes(programId);
+  };
+
+  const getBadgeColor = (color: string | null): "primary" | "success" | "secondary" | "accent" => {
+    if (color === "success" || color === "secondary" || color === "accent") {
+      return color;
+    }
+    return "primary";
   };
 
   if (loading) {
@@ -222,37 +165,37 @@ const Lessons = () => {
           {/* Course Grid */}
           <div className="flex-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {filteredCourses.map((course, index) => (
+              {filteredLessons.map((lesson, index) => (
                 <div
-                  key={course.id}
+                  key={lesson.id}
                   className="animate-fade-in"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <LessonCard
-                    id={course.id}
-                    title={course.title}
-                    description={course.description}
-                    thumbnail={course.thumbnail}
-                    price={course.price}
-                    duration={course.duration}
-                    viewCount={course.viewCount}
-                    commentCount={course.commentCount}
-                    badge={course.badge}
-                    badgeColor={course.badgeColor}
-                    isPurchased={isPurchased(course.programId)}
+                    id={lesson.id}
+                    title={lesson.title}
+                    description={lesson.description || ""}
+                    thumbnail={lesson.thumbnail_url || "/placeholder.svg"}
+                    price={lesson.price || 0}
+                    duration={lesson.duration || "0 phút"}
+                    viewCount={lesson.view_count || 0}
+                    commentCount={lesson.comment_count || 0}
+                    badge={lesson.badge || ""}
+                    badgeColor={getBadgeColor(lesson.badge_color)}
+                    isPurchased={isPurchased(lesson.program_id)}
                   />
                 </div>
               ))}
             </div>
 
-            {filteredCourses.length === 0 && (
+            {filteredLessons.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
                 Không tìm thấy bài học nào
               </div>
             )}
 
             {/* Load More */}
-            {filteredCourses.length > 0 && (
+            {filteredLessons.length > 0 && (
               <div className="flex justify-center mt-8">
                 <Button variant="outline" size="lg">
                   Xem thêm bài học
