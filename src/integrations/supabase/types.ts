@@ -473,18 +473,21 @@ export type Database = {
         Row: {
           document_id: string
           id: string
+          price: number
           purchased_at: string
           user_id: string
         }
         Insert: {
           document_id: string
           id?: string
+          price?: number
           purchased_at?: string
           user_id: string
         }
         Update: {
           document_id?: string
           id?: string
+          price?: number
           purchased_at?: string
           user_id?: string
         }
