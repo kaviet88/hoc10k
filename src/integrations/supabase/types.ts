@@ -104,6 +104,60 @@ export type Database = {
         }
         Relationships: []
       }
+      lessons: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          thumbnail_url: string | null
+          price: number
+          original_price: number | null
+          duration: string
+          view_count: number
+          comment_count: number
+          badge: string | null
+          badge_color: string
+          program_id: string
+          is_published: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          thumbnail_url?: string | null
+          price?: number
+          original_price?: number | null
+          duration?: string
+          view_count?: number
+          comment_count?: number
+          badge?: string | null
+          badge_color?: string
+          program_id: string
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          thumbnail_url?: string | null
+          price?: number
+          original_price?: number | null
+          duration?: string
+          view_count?: number
+          comment_count?: number
+          badge?: string | null
+          badge_color?: string
+          program_id?: string
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lesson_quizzes: {
         Row: {
           correct_answer: number

@@ -4,10 +4,11 @@ import { Header } from "@/components/layout/Header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, ShieldAlert, Brain, HelpCircle, FileQuestion } from "lucide-react";
+import { Loader2, ShieldAlert, Brain, HelpCircle, FileQuestion, BookOpen } from "lucide-react";
 import { QuizManager } from "@/components/admin/QuizManager";
 import { MindMapManager } from "@/components/admin/MindMapManager";
 import { ExamQuestionManager } from "@/components/admin/ExamQuestionManager";
+import { LessonManager } from "@/components/admin/LessonManager";
 
 export default function Admin() {
   const { user, loading: authLoading } = useAuth();
@@ -53,8 +54,12 @@ export default function Admin() {
           <p className="text-muted-foreground mt-2">Quản lý câu hỏi quiz, sơ đồ tư duy và đề thi</p>
         </div>
 
-        <Tabs defaultValue="exam" className="w-full">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+        <Tabs defaultValue="lessons" className="w-full">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+            <TabsTrigger value="lessons" className="gap-2">
+              <BookOpen className="w-4 h-4" />
+              Khóa học
+            </TabsTrigger>
             <TabsTrigger value="exam" className="gap-2">
               <FileQuestion className="w-4 h-4" />
               Đề thi
@@ -68,6 +73,10 @@ export default function Admin() {
               Sơ đồ tư duy
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="lessons" className="mt-6">
+            <LessonManager />
+          </TabsContent>
 
           <TabsContent value="exam" className="mt-6">
             <ExamQuestionManager />
