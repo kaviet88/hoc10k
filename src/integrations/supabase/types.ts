@@ -124,33 +124,6 @@ export type Database = {
         }
         Relationships: []
       }
-      purchased_documents: {
-        Row: {
-          id: string
-          user_id: string
-          document_id: string
-          purchased_at: string
-          price: number
-          payment_method: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          document_id: string
-          purchased_at?: string
-          price?: number
-          payment_method?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          document_id?: string
-          purchased_at?: string
-          price?: number
-          payment_method?: string | null
-        }
-        Relationships: []
-      }
       lesson_mindmaps: {
         Row: {
           created_at: string
@@ -498,6 +471,35 @@ export type Database = {
         }
         Relationships: []
       }
+      purchased_documents: {
+        Row: {
+          document_id: string
+          id: string
+          purchased_at: string
+          user_id: string
+        }
+        Insert: {
+          document_id: string
+          id?: string
+          purchased_at?: string
+          user_id: string
+        }
+        Update: {
+          document_id?: string
+          id?: string
+          purchased_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchased_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_achievements: {
         Row: {
           achievement_id: string
@@ -795,6 +797,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_document_download: {
+        Args: { doc_id: string }
+        Returns: undefined
+      }
+      increment_document_view: { Args: { doc_id: string }; Returns: undefined }
       submit_test_answers: {
         Args: { p_answers: Json; p_attempt_id: string }
         Returns: {
@@ -804,14 +811,6 @@ export type Database = {
           question_number: number
           user_answer: string
         }[]
-      }
-      increment_document_view: {
-        Args: { doc_id: string }
-        Returns: void
-      }
-      increment_document_download: {
-        Args: { doc_id: string }
-        Returns: void
       }
     }
     Enums: {

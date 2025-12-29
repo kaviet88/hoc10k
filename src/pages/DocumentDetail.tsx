@@ -91,7 +91,7 @@ const DocumentDetail = () => {
     // Check if user has purchased this document
     if (user) {
       const { data: purchaseData } = await supabase
-        .from("purchased_documents")
+        .from("purchased_documents" as any)
         .select("id")
         .eq("user_id", user.id)
         .eq("document_id", id)
@@ -101,7 +101,7 @@ const DocumentDetail = () => {
     }
 
     // Increment view count
-    await supabase.rpc("increment_document_view", { doc_id: id });
+    await supabase.rpc("increment_document_view" as any, { doc_id: id });
 
     setLoading(false);
   };
@@ -132,7 +132,7 @@ const DocumentDetail = () => {
     setDownloading(true);
 
     // Increment download count
-    await supabase.rpc("increment_document_download", { doc_id: document.id });
+    await supabase.rpc("increment_document_download" as any, { doc_id: document.id });
 
     // Open file URL in new tab or download
     window.open(document.file_url, "_blank");
