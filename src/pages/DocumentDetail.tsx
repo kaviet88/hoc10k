@@ -183,7 +183,6 @@ const handlePurchase = () => {
         user_id: user.id,
         document_id: document.id,
         price: document.price || 0,
-        payment_method: "bank_transfer",
       });
 
     if (error) {
@@ -193,6 +192,7 @@ const handlePurchase = () => {
       if (error.code === "23505") {
         // Unique constraint violation - user already purchased
         setHasPurchased(true);
+        setShowPaymentDialog(false);
         toast({
           title: "Bạn đã mua tài liệu này rồi!",
           description: "Bạn có thể tải tài liệu ngay bây giờ.",
