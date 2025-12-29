@@ -79,49 +79,46 @@ export type Database = {
       }
       documents: {
         Row: {
-          id: string
-          title: string
-          description: string | null
-          thumbnail_url: string | null
-          file_url: string | null
           badge: string | null
-          badge_color: string
-          view_count: number
-          download_count: number
-          is_free: boolean
-          is_published: boolean
+          badge_color: string | null
           created_at: string
-          updated_at: string
+          description: string | null
+          download_count: number | null
+          file_url: string | null
+          id: string
+          is_free: boolean | null
+          is_published: boolean | null
+          thumbnail_url: string | null
+          title: string
+          view_count: number | null
         }
         Insert: {
-          id?: string
-          title: string
-          description?: string | null
-          thumbnail_url?: string | null
-          file_url?: string | null
           badge?: string | null
-          badge_color?: string
-          view_count?: number
-          download_count?: number
-          is_free?: boolean
-          is_published?: boolean
+          badge_color?: string | null
           created_at?: string
-          updated_at?: string
+          description?: string | null
+          download_count?: number | null
+          file_url?: string | null
+          id?: string
+          is_free?: boolean | null
+          is_published?: boolean | null
+          thumbnail_url?: string | null
+          title: string
+          view_count?: number | null
         }
         Update: {
-          id?: string
-          title?: string
-          description?: string | null
-          thumbnail_url?: string | null
-          file_url?: string | null
           badge?: string | null
-          badge_color?: string
-          view_count?: number
-          download_count?: number
-          is_free?: boolean
-          is_published?: boolean
+          badge_color?: string | null
           created_at?: string
-          updated_at?: string
+          description?: string | null
+          download_count?: number | null
+          file_url?: string | null
+          id?: string
+          is_free?: boolean | null
+          is_published?: boolean | null
+          thumbnail_url?: string | null
+          title?: string
+          view_count?: number | null
         }
         Relationships: []
       }
@@ -179,60 +176,6 @@ export type Database = {
         }
         Relationships: []
       }
-      lessons: {
-        Row: {
-          id: string
-          title: string
-          description: string | null
-          thumbnail_url: string | null
-          price: number
-          original_price: number | null
-          duration: string
-          view_count: number
-          comment_count: number
-          badge: string | null
-          badge_color: string
-          program_id: string
-          is_published: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          title: string
-          description?: string | null
-          thumbnail_url?: string | null
-          price?: number
-          original_price?: number | null
-          duration?: string
-          view_count?: number
-          comment_count?: number
-          badge?: string | null
-          badge_color?: string
-          program_id: string
-          is_published?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          title?: string
-          description?: string | null
-          thumbnail_url?: string | null
-          price?: number
-          original_price?: number | null
-          duration?: string
-          view_count?: number
-          comment_count?: number
-          badge?: string | null
-          badge_color?: string
-          program_id?: string
-          is_published?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       lesson_quizzes: {
         Row: {
           correct_answer: number
@@ -266,6 +209,57 @@ export type Database = {
           program_id?: string
           question?: string
           question_order?: number
+        }
+        Relationships: []
+      }
+      lessons: {
+        Row: {
+          badge: string | null
+          badge_color: string | null
+          comment_count: number | null
+          created_at: string
+          description: string | null
+          duration: string | null
+          id: string
+          is_published: boolean | null
+          original_price: number | null
+          price: number | null
+          program_id: string | null
+          thumbnail_url: string | null
+          title: string
+          view_count: number | null
+        }
+        Insert: {
+          badge?: string | null
+          badge_color?: string | null
+          comment_count?: number | null
+          created_at?: string
+          description?: string | null
+          duration?: string | null
+          id?: string
+          is_published?: boolean | null
+          original_price?: number | null
+          price?: number | null
+          program_id?: string | null
+          thumbnail_url?: string | null
+          title: string
+          view_count?: number | null
+        }
+        Update: {
+          badge?: string | null
+          badge_color?: string | null
+          comment_count?: number | null
+          created_at?: string
+          description?: string | null
+          duration?: string | null
+          id?: string
+          is_published?: boolean | null
+          original_price?: number | null
+          price?: number | null
+          program_id?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          view_count?: number | null
         }
         Relationships: []
       }
