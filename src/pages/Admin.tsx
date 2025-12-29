@@ -4,11 +4,12 @@ import { Header } from "@/components/layout/Header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, ShieldAlert, Brain, HelpCircle, FileQuestion, BookOpen } from "lucide-react";
+import { Loader2, ShieldAlert, Brain, HelpCircle, FileQuestion, BookOpen, FileText } from "lucide-react";
 import { QuizManager } from "@/components/admin/QuizManager";
 import { MindMapManager } from "@/components/admin/MindMapManager";
 import { ExamQuestionManager } from "@/components/admin/ExamQuestionManager";
 import { LessonManager } from "@/components/admin/LessonManager";
+import { DocumentManager } from "@/components/admin/DocumentManager";
 
 export default function Admin() {
   const { user, loading: authLoading } = useAuth();
