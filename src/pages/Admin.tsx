@@ -55,10 +55,14 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="lessons" className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+          <TabsList className="grid w-full max-w-3xl grid-cols-5">
             <TabsTrigger value="lessons" className="gap-2">
               <BookOpen className="w-4 h-4" />
               Khóa học
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="gap-2">
+              <FileText className="w-4 h-4" />
+              Tài liệu
             </TabsTrigger>
             <TabsTrigger value="exam" className="gap-2">
               <FileQuestion className="w-4 h-4" />
@@ -76,6 +80,10 @@ export default function Admin() {
 
           <TabsContent value="lessons" className="mt-6">
             <LessonManager />
+          </TabsContent>
+
+          <TabsContent value="documents" className="mt-6">
+            <DocumentManager />
           </TabsContent>
 
           <TabsContent value="exam" className="mt-6">
