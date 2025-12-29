@@ -102,7 +102,6 @@ export type Database = {
           id?: string
           is_free?: boolean | null
           is_published?: boolean | null
-          price?: number
           thumbnail_url?: string | null
           title: string
           view_count?: number | null
@@ -117,7 +116,6 @@ export type Database = {
           id?: string
           is_free?: boolean | null
           is_published?: boolean | null
-          price?: number
           thumbnail_url?: string | null
           title?: string
           view_count?: number | null
