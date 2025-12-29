@@ -187,16 +187,29 @@ const handlePurchase = () => {
       });
 
     if (error) {
+      console.error("Purchase error:", error);
+
+      // Check if it's a duplicate purchase error
+      if (error.code === "23505") {
+        // Unique constraint violation - user already purchased
+        setHasPurchased(true);
+        toast({
+          title: "Bạn đã mua tài liệu này rồi!",
+          description: "Bạn có thể tải tài liệu ngay bây giờ.",
+        });
+        return;
+      }
+
       toast({
         title: "Lỗi",
-        description: "Không thể xác nhận thanh toán. Vui lòng liên hệ hỗ trợ.",
+        description: `Không thể xác nhận thanh toán: ${error.message}`,
         variant: "destructive",
       });
-      console.error("Purchase error:", error);
       return;
     }
 
     setHasPurchased(true);
+    setShowPaymentDialog(false);
     toast({
       title: "Thanh toán thành công! 🎉",
       description: "Bạn có thể tải tài liệu ngay bây giờ.",
