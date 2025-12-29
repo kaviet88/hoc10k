@@ -8,11 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { AchievementsBadges } from "@/components/achievements/AchievementsBadges";
 import { ContinueLearningWidget } from "@/components/dashboard/ContinueLearningWidget";
 import {
   BookOpen,
-  Trophy,
   ShoppingBag,
   FileText,
   Clock,
@@ -27,7 +25,6 @@ import {
 interface UserStats {
   totalLessons: number;
   totalExams: number;
-  achievements: number;
   purchasedCourses: number;
 }
 
@@ -49,7 +46,6 @@ const Dashboard = () => {
   const [stats, setStats] = useState<UserStats>({
     totalLessons: 0,
     totalExams: 0,
-    achievements: 0,
     purchasedCourses: 0,
   });
   const [points, setPoints] = useState<UserPoints>({
@@ -72,13 +68,9 @@ const Dashboard = () => {
       if (!user) return;
 
       // Fetch purchase count and achievements count
-      const [purchaseRes, achievementsRes] = await Promise.all([
+      const [purchaseRes] = await Promise.all([
         supabase
           .from("purchase_history")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id),
-        supabase
-          .from("user_achievements")
           .select("*", { count: "exact", head: true })
           .eq("user_id", user.id),
       ]);
@@ -86,7 +78,6 @@ const Dashboard = () => {
       setStats((prev) => ({
         ...prev,
         purchasedCourses: purchaseRes.count || 0,
-        achievements: achievementsRes.count || 0,
       }));
 
       // Fetch user points
@@ -202,33 +193,6 @@ const Dashboard = () => {
     setCheckingIn(false);
   };
 
-  const handleAchievementEarned = async (bonusPoints: number) => {
-    if (!user || bonusPoints <= 0) return;
-
-    const { error } = await supabase
-      .from("user_points")
-      .update({
-        total_points: points.total_points + bonusPoints,
-        available_points: points.available_points + bonusPoints,
-      })
-      .eq("user_id", user.id);
-
-    if (!error) {
-      setPoints((prev) => ({
-        ...prev,
-        total_points: prev.total_points + bonusPoints,
-        available_points: prev.available_points + bonusPoints,
-      }));
-      setStats((prev) => ({
-        ...prev,
-        achievements: prev.achievements + 1,
-      }));
-      toast({
-        title: "Thành tựu mới! 🏆",
-        description: `Bạn đã nhận được ${bonusPoints} điểm thưởng!`,
-      });
-    }
-  };
 
   const getUserName = () => {
     if (!user) return "";
@@ -459,18 +423,6 @@ const Dashboard = () => {
 
           <Card className="shadow-card">
             <CardContent className="p-6 text-center">
-              <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-secondary/20 flex items-center justify-center">
-                <Trophy className="w-7 h-7 text-secondary-foreground" />
-              </div>
-              <div className="text-3xl font-bold text-foreground mb-1">
-                {stats.achievements}
-              </div>
-              <p className="text-sm text-muted-foreground">Thành tựu</p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-card">
-            <CardContent className="p-6 text-center">
               <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-success/10 flex items-center justify-center">
                 <ShoppingBag className="w-7 h-7 text-success" />
               </div>
@@ -481,18 +433,6 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Achievements Section */}
-        {user && (
-          <div className="mt-8">
-            <AchievementsBadges
-              userId={user.id}
-              currentStreak={points.current_streak}
-              totalPoints={points.total_points}
-              onAchievementEarned={handleAchievementEarned}
-            />
-          </div>
-        )}
       </main>
     </div>
   );
