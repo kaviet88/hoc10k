@@ -13,6 +13,7 @@ import { useState } from "react";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { PaymentQRDialog } from "./PaymentQRDialog";
 
 interface CartSidebarProps {
   items: CartItem[];
@@ -25,8 +26,10 @@ export const CartSidebar = ({
   onRemoveItem,
   onClearCart,
 }: CartSidebarProps) => {
-  const [paymentMethod, setPaymentMethod] = useState("online");
-  const { checkout, loading } = useCart();
+  const [paymentMethod, setPaymentMethod] = useState("bank");
+  const [showPaymentQR, setShowPaymentQR] = useState(false);
+  const [currentOrderId, setCurrentOrderId] = useState("");
+  const { loading } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -47,20 +50,19 @@ export const CartSidebar = ({
       return;
     }
 
-    const success = await checkout(paymentMethod);
-    if (success) {
-      toast({
-        title: "Thanh toán thành công!",
-        description: "Cảm ơn bạn đã mua hàng. Xem lịch sử mua hàng để theo dõi đơn hàng.",
-      });
-      navigate("/purchase-history");
-    } else {
-      toast({
-        title: "Thanh toán thất bại",
-        description: "Đã xảy ra lỗi. Vui lòng thử lại sau.",
-        variant: "destructive",
-      });
-    }
+    // Show QR code dialog for bank transfer
+    const orderId = `ORD${Date.now().toString().slice(-9)}`;
+    setCurrentOrderId(orderId);
+    setShowPaymentQR(true);
+  };
+
+  const handleCancelPayment = () => {
+    setShowPaymentQR(false);
+    setCurrentOrderId("");
+    toast({
+      title: "Đã hủy thanh toán",
+      description: "Bạn có thể thử lại bất cứ lúc nào.",
+    });
   };
 
   return (
@@ -157,10 +159,7 @@ export const CartSidebar = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="online">Thanh toán online</SelectItem>
               <SelectItem value="bank">Chuyển khoản ngân hàng</SelectItem>
-              <SelectItem value="momo">Ví MoMo</SelectItem>
-              <SelectItem value="zalopay">ZaloPay</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -197,6 +196,15 @@ export const CartSidebar = ({
         )}
         {user ? "Thanh Toán Ngay" : "Đăng nhập để thanh toán"}
       </Button>
+
+      {/* Payment QR Dialog */}
+      <PaymentQRDialog
+        open={showPaymentQR}
+        onOpenChange={setShowPaymentQR}
+        orderId={currentOrderId}
+        amount={total}
+        onCancelPayment={handleCancelPayment}
+      />
     </div>
   );
 };
