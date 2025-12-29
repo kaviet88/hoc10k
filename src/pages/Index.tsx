@@ -1,82 +1,69 @@
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { FilterSidebar } from "@/components/exams/FilterSidebar";
 import { ExamCard } from "@/components/exams/ExamCard";
 import { AITutorChat } from "@/components/chat/AITutorChat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FileText, Search, BookMarked } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { FileText, Search, BookMarked, Loader2 } from "lucide-react";
 
-import examThumb1 from "@/assets/exam-thumb-1.jpg";
-import examThumb2 from "@/assets/exam-thumb-2.jpg";
-import examThumb3 from "@/assets/exam-thumb-3.jpg";
-import examThumb4 from "@/assets/exam-thumb-4.jpg";
-import examThumb5 from "@/assets/exam-thumb-5.jpg";
-import examThumb6 from "@/assets/exam-thumb-6.jpg";
+interface Exam {
+  id: string;
+  title: string;
+  description: string | null;
+  subject: string;
+  total_questions: number;
+  participant_count: number | null;
+  is_premium: boolean | null;
+  difficulty: string | null;
+  grade: number | null;
+  time_limit_minutes: number;
+  exam_type: string | null;
+}
 
-const exams = [
-  {
-    id: 1,
-    title: "(Vòng Trường) Bộ 8 đề Ôn tập Chủ Điểm Trong Tâm TOÁN VIOEDU Lớp 2 (năm 2025-2026)",
-    thumbnail: examThumb1,
-    examCount: 8,
-    participantCount: 1250,
-    isPremium: true,
-    badge: "Toán",
-    badgeColor: "primary" as const,
-  },
-  {
-    id: 2,
-    title: "Bộ 6 đề ôn học kỳ 1 Tiếng Việt lớp 2 (năm 2025-2026)",
-    thumbnail: examThumb2,
-    examCount: 6,
-    participantCount: 890,
-    isPremium: true,
-    badge: "Tiếng Việt",
-    badgeColor: "success" as const,
-  },
-  {
-    id: 3,
-    title: "Bộ 5 đề Ôn tập TNTV theo chuyên đề lớp 2 (năm 2025-2026)",
-    thumbnail: examThumb3,
-    examCount: 5,
-    participantCount: 654,
-    isPremium: true,
-    badge: "TNTV",
-    badgeColor: "secondary" as const,
-  },
-  {
-    id: 4,
-    title: "Bộ 3 đề thi Thử sức vòng thi Hương TNTV lớp 2 (năm 2025-2026)",
-    thumbnail: examThumb4,
-    examCount: 3,
-    participantCount: 456,
-    isPremium: true,
-    badge: "Tiếng Anh",
-    badgeColor: "accent" as const,
-  },
-  {
-    id: 5,
-    title: "Bộ 6 đề ôn luyện các dạng bài vòng thi Hương TNTV lớp 2 (năm 2025-2026)",
-    thumbnail: examThumb5,
-    examCount: 6,
-    participantCount: 321,
-    isPremium: true,
-    badge: "Trò chơi",
-    badgeColor: "secondary" as const,
-  },
-  {
-    id: 6,
-    title: "(Vòng Xã/Phường) Bộ 5 đề Ôn luyện VIOEDU TOÁN lớp 2 năm 2025-2026 (phần 1)",
-    thumbnail: examThumb6,
-    examCount: 5,
-    participantCount: 789,
-    isPremium: true,
-    badge: "Quiz",
-    badgeColor: "primary" as const,
-  },
-];
+const subjectBadgeColors: Record<string, "primary" | "success" | "secondary" | "accent"> = {
+  "Toán": "primary",
+  "Tiếng Việt": "success",
+  "Tiếng Anh": "accent",
+  "TNTV": "secondary",
+  "default": "primary",
+};
 
 const Index = () => {
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    fetchExams();
+  }, []);
+
+  const fetchExams = async () => {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("practice_tests")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (data && !error) {
+      setExams(data);
+    } else {
+      console.error("Error fetching exams:", error);
+    }
+
+    setLoading(false);
+  };
+
+  const filteredExams = exams.filter((exam) =>
+    exam.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const getBadgeColor = (subject: string): "primary" | "success" | "secondary" | "accent" => {
+    return subjectBadgeColors[subject] || subjectBadgeColors["default"];
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -100,6 +87,8 @@ const Index = () => {
               <Input 
                 placeholder="Tìm kiếm đề thi..." 
                 className="pl-9 w-full sm:w-64"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <Button variant="outline" size="icon">
@@ -115,32 +104,45 @@ const Index = () => {
 
           {/* Exam Grid */}
           <div className="flex-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {exams.map((exam, index) => (
-                <div 
-                  key={exam.id} 
-                  className="animate-fade-in"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <ExamCard
-                    title={exam.title}
-                    thumbnail={exam.thumbnail}
-                    examCount={exam.examCount}
-                    participantCount={exam.participantCount}
-                    isPremium={exam.isPremium}
-                    badge={exam.badge}
-                    badgeColor={exam.badgeColor}
-                  />
-                </div>
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : filteredExams.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                Không tìm thấy đề thi nào
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filteredExams.map((exam, index) => (
+                  <div
+                    key={exam.id}
+                    className="animate-fade-in"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    <ExamCard
+                      id={exam.id}
+                      title={exam.title}
+                      thumbnail={`https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=300&fit=crop`}
+                      examCount={exam.total_questions}
+                      participantCount={exam.participant_count || 0}
+                      isPremium={exam.is_premium || false}
+                      badge={exam.subject}
+                      badgeColor={getBadgeColor(exam.subject)}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Load More */}
-            <div className="flex justify-center mt-8">
-              <Button variant="outline" size="lg">
-                Xem thêm đề thi
-              </Button>
-            </div>
+            {!loading && filteredExams.length > 0 && (
+              <div className="flex justify-center mt-8">
+                <Button variant="outline" size="lg">
+                  Xem thêm đề thi
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </main>

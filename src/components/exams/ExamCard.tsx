@@ -1,8 +1,10 @@
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Users, Clock } from "lucide-react";
 
 interface ExamCardProps {
+  id: string;
   title: string;
   thumbnail: string;
   examCount: number;
@@ -14,7 +16,8 @@ interface ExamCardProps {
 }
 
 export function ExamCard({ 
-  title, 
+  id,
+  title,
   thumbnail, 
   examCount, 
   participantCount, 
@@ -89,9 +92,11 @@ export function ExamCard({
         </div>
 
         {/* Action Button */}
-        <Button variant="gradient" size="sm" className="w-full">
-          Làm bài ngay
-        </Button>
+        <Link to={`/practice/${id}`}>
+          <Button variant="gradient" size="sm" className="w-full">
+            Làm bài ngay
+          </Button>
+        </Link>
       </div>
     </div>
   );
