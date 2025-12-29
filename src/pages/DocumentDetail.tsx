@@ -91,7 +91,7 @@ const DocumentDetail = () => {
     // Check if user has purchased this document
     if (user) {
       const { data: purchaseData } = await supabase
-        .from("purchased_documents" as any)
+        .from("purchased_documents")
         .select("id")
         .eq("user_id", user.id)
         .eq("document_id", id)
@@ -101,13 +101,13 @@ const DocumentDetail = () => {
     }
 
     // Increment view count
-    await supabase.rpc("increment_document_view" as any, { doc_id: id });
+    await supabase.rpc("increment_document_view", { doc_id: id });
 
     setLoading(false);
   };
 
   const hasAccess = () => {
-    return document?.is_free || hasPurchased;
+    return document?.is_free === true || hasPurchased;
   };
 
   const handleDownload = async () => {
@@ -132,7 +132,7 @@ const DocumentDetail = () => {
     setDownloading(true);
 
     // Increment download count
-    await supabase.rpc("increment_document_download" as any, { doc_id: document.id });
+    await supabase.rpc("increment_document_download", { doc_id: document.id });
 
     // Open file URL in new tab or download
     window.open(document.file_url, "_blank");
@@ -145,7 +145,7 @@ const DocumentDetail = () => {
     setDownloading(false);
   };
 
-  const handlePurchase = () => {
+const handlePurchase = () => {
     if (!user) {
       toast({
         title: "Yêu cầu đăng nhập",
@@ -156,7 +156,9 @@ const DocumentDetail = () => {
       return;
     }
 
-    if (!document) return;
+    if (!document) {
+      return;
+    }
 
     // Generate order ID and show payment dialog
     const orderId = `DOC${Date.now().toString().slice(-9)}`;
@@ -450,19 +452,18 @@ const DocumentDetail = () => {
           </div>
         </div>
 
-        {/* Payment Dialog */}
-        {document && (
-          <DocumentPaymentDialog
-            open={showPaymentDialog}
-            onOpenChange={setShowPaymentDialog}
-            orderId={currentOrderId}
-            amount={document.price || 50000}
-            documentTitle={document.title}
-            onPaymentConfirmed={handlePaymentConfirmed}
-            onCancelPayment={handleCancelPayment}
-          />
-        )}
-      </main>
+        </main>
+
+      {/* Payment Dialog */}
+      <DocumentPaymentDialog
+        open={showPaymentDialog}
+        onOpenChange={setShowPaymentDialog}
+        orderId={currentOrderId}
+        amount={document?.price || 50000}
+        documentTitle={document?.title || ""}
+        onPaymentConfirmed={handlePaymentConfirmed}
+        onCancelPayment={handleCancelPayment}
+      />
     </div>
   );
 };
