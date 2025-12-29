@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { DocumentFileUpload } from "@/components/documents/DocumentFileUpload";
 import {
   Plus,
   Trash2,
@@ -52,6 +53,7 @@ interface Document {
   file_url: string | null;
   badge: string | null;
   badge_color: string;
+  price: number;
   view_count: number;
   download_count: number;
   is_free: boolean;
@@ -93,6 +95,7 @@ export function DocumentManager() {
   const [fileUrl, setFileUrl] = useState("");
   const [badge, setBadge] = useState("");
   const [badgeColor, setBadgeColor] = useState("primary");
+  const [price, setPrice] = useState(0);
   const [viewCount, setViewCount] = useState(0);
   const [downloadCount, setDownloadCount] = useState(0);
   const [isFree, setIsFree] = useState(false);
@@ -131,6 +134,7 @@ export function DocumentManager() {
     setFileUrl("");
     setBadge("");
     setBadgeColor("primary");
+    setPrice(0);
     setViewCount(0);
     setDownloadCount(0);
     setIsFree(false);
@@ -146,6 +150,7 @@ export function DocumentManager() {
     setFileUrl(doc.file_url || "");
     setBadge(doc.badge || "");
     setBadgeColor(doc.badge_color);
+    setPrice(doc.price || 0);
     setViewCount(doc.view_count);
     setDownloadCount(doc.download_count);
     setIsFree(doc.is_free);
@@ -168,6 +173,7 @@ export function DocumentManager() {
       file_url: fileUrl.trim() || null,
       badge: badge.trim() || null,
       badge_color: badgeColor,
+      price: price,
       view_count: viewCount,
       download_count: downloadCount,
       is_free: isFree,
@@ -435,6 +441,15 @@ export function DocumentManager() {
                       )}
                     </div>
 
+                    <DocumentFileUpload
+                      bucketName="document-thumbnails"
+                      currentUrl={thumbnailUrl}
+                      onUploadComplete={setThumbnailUrl}
+                      accept="image/*"
+                      label="Hoặc tải lên hình thumbnail"
+                      maxSizeMB={5}
+                    />
+
                     <div className="grid gap-2">
                       <Label htmlFor="fileUrl">URL File tài liệu</Label>
                       <Input
@@ -444,6 +459,15 @@ export function DocumentManager() {
                         placeholder="https://... (link file PDF, DOC, ...)"
                       />
                     </div>
+
+                    <DocumentFileUpload
+                      bucketName="documents"
+                      currentUrl={fileUrl}
+                      onUploadComplete={setFileUrl}
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                      label="Hoặc tải lên file tài liệu"
+                      maxSizeMB={50}
+                    />
 
                     <div className="grid gap-2">
                       <Label htmlFor="price">Giá (VNĐ)</Label>
