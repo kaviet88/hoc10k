@@ -1,8 +1,10 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Lock, Clock, Eye, MessageSquare } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "@/hooks/use-toast";
+import { Lock, Clock, Eye, MessageSquare, ShoppingCart, Check } from "lucide-react";
 
 interface LessonCardProps {
   id: string;
@@ -16,6 +18,7 @@ interface LessonCardProps {
   badge?: string;
   badgeColor?: "primary" | "success" | "secondary" | "accent";
   isPurchased: boolean;
+  programId?: string;
 }
 
 const badgeStyles = {
@@ -37,9 +40,40 @@ export function LessonCard({
   badge,
   badgeColor = "primary",
   isPurchased,
+  programId,
 }: LessonCardProps) {
+  const { addItem, isInCart } = useCart();
+  const navigate = useNavigate();
+
+  const itemId = programId || id;
+  const inCart = isInCart(itemId);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN").format(price) + " đ";
+  };
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (inCart) {
+      // Navigate to checkout if already in cart
+      navigate("/checkout");
+      return;
+    }
+
+    addItem({
+      id: itemId,
+      type: "lesson",
+      name: title,
+      duration: duration,
+      price: price,
+    });
+
+    toast({
+      title: "Đã thêm vào giỏ hàng! 🛒",
+      description: `${title} đã được thêm vào giỏ hàng.`,
+    });
   };
 
   return (
@@ -125,11 +159,24 @@ export function LessonCard({
               </Button>
             </Link>
           ) : (
-            <Link to="/purchase">
-              <Button variant="outline" className="w-full" size="sm">
-                Mua khóa học
-              </Button>
-            </Link>
+            <Button
+              variant={inCart ? "default" : "outline"}
+              className="w-full"
+              size="sm"
+              onClick={handleAddToCart}
+            >
+              {inCart ? (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Đã thêm - Thanh toán
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Mua khóa học
+                </>
+              )}
+            </Button>
           )}
         </div>
       </CardContent>

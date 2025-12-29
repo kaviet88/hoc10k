@@ -183,6 +183,7 @@ const Lessons = () => {
                     badge={lesson.badge || ""}
                     badgeColor={getBadgeColor(lesson.badge_color)}
                     isPurchased={isPurchased(lesson.program_id)}
+                    programId={lesson.program_id || lesson.id}
                   />
                 </div>
               ))}
