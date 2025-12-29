@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { CartSidebar } from "@/components/checkout/CartSidebar";
 import { FilterSection } from "@/components/checkout/FilterSection";
 import { ProgramList } from "@/components/checkout/ProgramList";
 import { useCart } from "@/contexts/CartContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
 export interface Program {
   id: string;
@@ -16,49 +18,50 @@ export interface Program {
   thumbnail?: string;
 }
 
-const mockPrograms: Program[] = [
-  {
-    id: "1",
-    type: "Bài học",
-    name: "Tiếng Anh Movers 360 ngày",
-    duration: "365 ngày",
-    price: 590000,
-    tags: ["Phổ biến", "Khuyến nghị"],
-  },
-  {
-    id: "2",
-    type: "Bài học",
-    name: "Toán Tư Duy Lớp 1",
-    duration: "180 ngày",
-    price: 390000,
-    originalPrice: 450000,
-    tags: ["Mới"],
-  },
-  {
-    id: "3",
-    type: "Bài học",
-    name: "Tiếng Việt Nâng Cao Lớp 2",
-    duration: "365 ngày",
-    price: 490000,
-    tags: ["Phổ biến"],
-  },
-  {
-    id: "4",
-    type: "Combo",
-    name: "Combo Toán + Tiếng Việt Lớp 3",
-    duration: "365 ngày",
-    price: 890000,
-    originalPrice: 1100000,
-    tags: ["Tiết kiệm", "Khuyến nghị"],
-  },
-];
-
 const Checkout = () => {
   const { items, addItem, removeItem, clearCart, isInCart } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [programType, setProgramType] = useState("all");
   const [subject, setSubject] = useState("all");
   const [activeTab, setActiveTab] = useState<"single" | "combo">("single");
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPrograms();
+  }, []);
+
+  const fetchPrograms = async () => {
+    setLoading(true);
+
+    // Fetch lessons from database
+    const { data: lessonsData, error: lessonsError } = await supabase
+      .from("lessons")
+      .select("*")
+      .eq("is_published", true)
+      .order("created_at", { ascending: false });
+
+    if (lessonsError) {
+      console.error("Error fetching lessons:", lessonsError);
+      setLoading(false);
+      return;
+    }
+
+    // Transform lessons to Program format
+    const lessonPrograms: Program[] = (lessonsData || []).map((lesson) => ({
+      id: lesson.program_id || lesson.id,
+      type: "Bài học",
+      name: lesson.title,
+      duration: lesson.duration || "365 ngày",
+      price: lesson.price || 0,
+      originalPrice: lesson.original_price || undefined,
+      tags: lesson.badge ? [lesson.badge] : [],
+      thumbnail: lesson.thumbnail_url || undefined,
+    }));
+
+    setPrograms(lessonPrograms);
+    setLoading(false);
+  };
 
   const handleAddToCart = (program: Program) => {
     addItem({
@@ -70,7 +73,7 @@ const Checkout = () => {
     });
   };
 
-  const filteredPrograms = mockPrograms.filter((program) => {
+  const filteredPrograms = programs.filter((program) => {
     const matchesSearch = program.name
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
@@ -83,8 +86,19 @@ const Checkout = () => {
     return matchesSearch && matchesType && matchesTab;
   });
 
-  const totalPrograms = mockPrograms.length;
+  const totalPrograms = programs.length;
   const displayedPrograms = filteredPrograms.length;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

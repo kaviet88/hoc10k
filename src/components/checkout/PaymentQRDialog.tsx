@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,7 @@ interface PaymentQRDialogProps {
   orderId: string;
   amount: number;
   onCancelPayment: () => void;
-  onPaymentConfirmed?: () => void;
+  onPaymentConfirmed: () => Promise<void>;
 }
 
 // Bank account configuration
@@ -32,8 +32,10 @@ export const PaymentQRDialog = ({
   orderId,
   amount,
   onCancelPayment,
+  onPaymentConfirmed,
 }: PaymentQRDialogProps) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN").format(price) + " đ";
@@ -76,6 +78,18 @@ export const PaymentQRDialog = ({
   const handleCancel = () => {
     onCancelPayment();
     onOpenChange(false);
+  };
+
+  const handleConfirmPayment = async () => {
+    setConfirming(true);
+    try {
+      await onPaymentConfirmed();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Payment confirmation error:", error);
+    } finally {
+      setConfirming(false);
+    }
   };
 
   return (
@@ -229,14 +243,29 @@ export const PaymentQRDialog = ({
             </div>
           </div>
 
-          {/* Cancel Button */}
-          <div className="mt-6">
+          {/* Action Buttons */}
+          <div className="mt-6 flex gap-3">
             <Button
               variant="outline"
-              className="w-full"
+              className="flex-1"
               onClick={handleCancel}
+              disabled={confirming}
             >
               Hủy thanh toán
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={handleConfirmPayment}
+              disabled={confirming}
+            >
+              {confirming ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                "Tôi đã thanh toán"
+              )}
             </Button>
           </div>
         </div>

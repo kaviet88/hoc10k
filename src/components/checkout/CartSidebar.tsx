@@ -12,6 +12,7 @@ import {
 import { useState } from "react";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { PaymentQRDialog } from "./PaymentQRDialog";
 
@@ -63,6 +64,48 @@ export const CartSidebar = ({
       title: "Đã hủy thanh toán",
       description: "Bạn có thể thử lại bất cứ lúc nào.",
     });
+  };
+
+  const handlePaymentConfirmed = async () => {
+    if (!user || items.length === 0) return;
+
+    // Save purchase to purchase_history table
+    const purchasePromises = items.map((item) =>
+      supabase.from("purchase_history").insert({
+        user_id: user.id,
+        program_id: item.id,
+        program_name: item.name,
+        program_type: item.type,
+        price: item.price,
+        duration: item.duration,
+        payment_method: "bank_transfer",
+      })
+    );
+
+    const results = await Promise.all(purchasePromises);
+    const errors = results.filter((r) => r.error);
+
+    if (errors.length > 0) {
+      console.error("Purchase errors:", errors);
+      toast({
+        title: "Lỗi",
+        description: "Không thể lưu thông tin mua hàng. Vui lòng liên hệ hỗ trợ.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Clear cart after successful purchase
+    onClearCart();
+
+    // Show success notification
+    toast({
+      title: "Thanh toán thành công! 🎉",
+      description: `Bạn đã mua thành công ${items.length} khóa học. Chúc bạn học tập vui vẻ!`,
+    });
+
+    // Navigate to my courses page
+    navigate("/my-courses");
   };
 
   return (
@@ -204,6 +247,7 @@ export const CartSidebar = ({
         orderId={currentOrderId}
         amount={total}
         onCancelPayment={handleCancelPayment}
+        onPaymentConfirmed={handlePaymentConfirmed}
       />
     </div>
   );
