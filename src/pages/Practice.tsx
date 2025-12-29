@@ -10,9 +10,11 @@ import {
   XCircle,
   Eye,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ArrowLeft,
+  AlertCircle
 } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -21,71 +23,28 @@ import { ExamProgressHeader } from "@/components/exam/ExamProgressHeader";
 import { QuestionNavigator } from "@/components/exam/QuestionNavigator";
 import { QuestionCard, Question } from "@/components/exam/QuestionCard";
 
-// Fallback sample questions when no database questions exist
-const sampleQuestions: Question[] = [
-  {
-    id: 1,
-    type: "multiple_choice",
-    question: "Lucy _____ reading comic books.",
-    options: ["likes", "like", "liking"],
-    correctAnswer: 0,
-    points: 1,
-  },
-  {
-    id: 2,
-    type: "listening",
-    question: "LISTENING & FILL IN THE BLANKS:\n\nNghe audio và điền từ còn thiếu vào các chỗ trống:",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-    listeningBlanks: [
-      { id: "listen1_1", label: "1: Tom played", placeholder: "..." },
-      { id: "listen1_2", label: "2: Anna loves", placeholder: "..." },
-      { id: "listen1_3", label: "3: Leo and Sophie played", placeholder: "..." },
-      { id: "listen1_4", label: "4: Lucy rode her", placeholder: "..." },
-      { id: "listen1_5", label: "5: Ben read a", placeholder: "..." },
-    ],
-    correctAnswer: "games,dancing,chess,bike,book",
-    points: 1,
-  },
-  {
-    id: 3,
-    type: "dropdown_select",
-    question: "Tom loves spending his free time [BLANK:0] the garden.\n\nHe and his sister [BLANK:1] to play tennis.\n\nThey sometimes [BLANK:2] tennis after school.",
-    blanks: [
-      { id: "blank1", options: ["in", "on", "at", "to"] },
-      { id: "blank2", options: ["like", "likes", "liking", "liked"] },
-      { id: "blank3", options: ["play", "plays", "playing", "played"] },
-    ],
-    correctAnswer: "in,like,play",
-    points: 1,
-  },
-  {
-    id: 4,
-    type: "multiple_choice",
-    question: "Kết quả của phép tính 25 + 17 = ?",
-    options: ["41", "42", "43", "44"],
-    correctAnswer: 1,
-    points: 1,
-  },
-  {
-    id: 5,
-    type: "multiple_choice",
-    question: "Số liền sau của 99 là:",
-    options: ["98", "100", "101", "97"],
-    correctAnswer: 1,
-    points: 1,
-  },
-];
 
 const Practice = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { examId: examIdParam } = useParams<{ examId: string }>();
   const { user } = useAuth();
   
   const examTitle = searchParams.get("title") || "KIỂM TRA TRÌNH ĐỘ MOVERS 2";
-  const examId = searchParams.get("examId");
-  
+  const examId = examIdParam || searchParams.get("examId");
+
+  // Function to navigate back to exam preview
+  const handleBackToPreview = () => {
+    if (examId) {
+      navigate(`/exams/${examId}`);
+    } else {
+      navigate("/");
+    }
+  };
+
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [showStartDialog, setShowStartDialog] = useState(true);
   const [examStarted, setExamStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -108,46 +67,59 @@ const Practice = () => {
 
   const totalTime = 30 * 60;
 
-  // Fetch questions from database using secure function (no correct answers exposed)
+  // Fetch questions from database
   useEffect(() => {
     const fetchQuestions = async () => {
       setLoadingQuestions(true);
-      
-      if (examId) {
-        // Use secure RPC function that doesn't expose correct answers
-        const { data, error } = await supabase
-          .rpc("get_practice_questions", { p_test_id: examId });
+      setFetchError(null);
 
-        if (!error && data && data.length > 0) {
-          const mappedQuestions: Question[] = data.map((q: {
-            id: string;
-            question_number: number;
-            question_text: string;
-            question_type: string;
-            options: string[] | null;
-            audio_url: string | null;
-            listening_blanks: { id: string; label: string; placeholder: string }[] | null;
-          }) => ({
-            id: q.question_number,
-            type: q.question_type as Question["type"],
-            question: q.question_text,
-            options: Array.isArray(q.options) ? q.options : undefined,
-            // No correct answer available until submission - use placeholder
-            correctAnswer: "",
-            points: 1,
-            audioUrl: q.audio_url || undefined,
-            listeningBlanks: q.listening_blanks || undefined,
-          }));
-          setQuestions(mappedQuestions);
-        } else {
-          // Use sample questions as fallback
-          setQuestions(sampleQuestions);
-        }
-      } else {
-        // No examId, use sample questions
-        setQuestions(sampleQuestions);
+      if (!examId) {
+        setFetchError("Không tìm thấy ID đề thi");
+        setLoadingQuestions(false);
+        return;
       }
-      
+
+      // Fetch questions directly from practice_test_questions table
+      const { data, error } = await supabase
+        .from("practice_test_questions")
+        .select("*")
+        .eq("test_id", examId)
+        .order("question_number", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching questions:", error);
+        setFetchError("Không thể tải câu hỏi. Vui lòng thử lại.");
+        setLoadingQuestions(false);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        setFetchError("Đề thi này chưa có câu hỏi nào.");
+        setLoadingQuestions(false);
+        return;
+      }
+
+      // Map database questions to Question type
+      const mappedQuestions: Question[] = data.map((q) => {
+        const options = q.options as string[] | null;
+        const listeningBlanks = q.listening_blanks as { id: string; label: string; placeholder: string }[] | null;
+
+        return {
+          id: q.question_number,
+          type: q.question_type as Question["type"],
+          question: q.question_text,
+          options: Array.isArray(options) ? options : undefined,
+          correctAnswer: q.question_type === "multiple_choice"
+            ? parseInt(q.correct_answer)
+            : q.correct_answer,
+          points: 1,
+          audioUrl: q.audio_url || undefined,
+          listeningBlanks: listeningBlanks || undefined,
+          explanation: q.explanation || undefined,
+        };
+      });
+
+      setQuestions(mappedQuestions);
       setLoadingQuestions(false);
     };
 
@@ -351,7 +323,35 @@ const Practice = () => {
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
         <Header />
         <main className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Đang tải câu hỏi...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Show error if failed to fetch questions
+  if (fetchError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+        <Header />
+        <main className="flex items-center justify-center h-[60vh]">
+          <div className="text-center max-w-md">
+            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-foreground mb-2">Không thể tải đề thi</h2>
+            <p className="text-muted-foreground mb-6">{fetchError}</p>
+            <div className="flex gap-4 justify-center">
+              <Button variant="outline" onClick={handleBackToPreview} className="gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Quay lại
+              </Button>
+              <Button onClick={() => window.location.reload()}>
+                Thử lại
+              </Button>
+            </div>
+          </div>
         </main>
       </div>
     );
@@ -372,11 +372,11 @@ const Practice = () => {
             maxPoints={10}
             difficulty="medium"
             onStart={handleStartExam}
-            onBack={() => navigate(-1)}
+            onBack={handleBackToPreview}
           />
           
           <div className="flex gap-4 justify-center mt-8">
-            <Button variant="outline" onClick={() => navigate(-1)} className="gap-2">
+            <Button variant="outline" onClick={handleBackToPreview} className="gap-2">
               <ChevronLeft className="w-4 h-4" />
               Quay lại danh sách
             </Button>
@@ -422,8 +422,9 @@ const Practice = () => {
             </div>
 
             <div className="flex gap-4 justify-center mb-6">
-              <Button variant="outline" onClick={() => navigate("/")}>
-                Về trang chủ
+              <Button variant="outline" onClick={handleBackToPreview} className="gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Quay lại đề thi
               </Button>
               <Button variant="outline" onClick={() => setShowReview(!showReview)}>
                 <Eye className="w-4 h-4 mr-2" />
@@ -524,7 +525,10 @@ const Practice = () => {
         <main className="flex items-center justify-center h-[60vh]">
           <div className="text-center">
             <p className="text-muted-foreground mb-4">Không tìm thấy câu hỏi</p>
-            <Button onClick={() => navigate(-1)}>Quay lại</Button>
+            <Button onClick={handleBackToPreview} className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Quay lại
+            </Button>
           </div>
         </main>
       </div>
@@ -538,8 +542,8 @@ const Practice = () => {
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-                <ChevronLeft className="w-5 h-5" />
+              <Button variant="ghost" size="icon" onClick={handleBackToPreview} title="Quay lại xem trước đề thi">
+                <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
                 <h1 className="text-lg font-bold text-foreground">{examTitle}</h1>
