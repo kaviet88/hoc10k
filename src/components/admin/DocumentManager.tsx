@@ -445,6 +445,21 @@ export function DocumentManager() {
                       />
                     </div>
 
+                    <div className="grid gap-2">
+                      <Label htmlFor="price">Giá (VNĐ)</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        value={price}
+                        onChange={(e) => setPrice(Number(e.target.value))}
+                        placeholder="0 = Miễn phí"
+                        min={0}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Nhập 0 và đánh dấu "Miễn phí" nếu tài liệu miễn phí
+                      </p>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="badge">Nhãn (Badge)</Label>

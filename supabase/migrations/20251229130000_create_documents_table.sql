@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS public.documents (
     file_url TEXT,
     badge TEXT,
     badge_color TEXT DEFAULT 'primary' CHECK (badge_color IN ('primary', 'success', 'secondary', 'accent')),
+    price INTEGER DEFAULT 0,
     view_count INTEGER DEFAULT 0,
     download_count INTEGER DEFAULT 0,
     is_free BOOLEAN DEFAULT false,

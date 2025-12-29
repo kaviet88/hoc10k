@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { DocumentPaymentDialog } from "@/components/documents/DocumentPaymentDialog";
 import {
   FileText,
   Download,
@@ -30,6 +31,7 @@ interface Document {
   file_url: string | null;
   badge: string | null;
   badge_color: string;
+  price: number;
   view_count: number;
   download_count: number;
   is_free: boolean;
@@ -52,6 +54,8 @@ const DocumentDetail = () => {
   const [document, setDocument] = useState<Document | null>(null);
   const [hasPurchased, setHasPurchased] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [currentOrderId, setCurrentOrderId] = useState("");
 
   useEffect(() => {
     if (id) {
@@ -152,8 +156,51 @@ const DocumentDetail = () => {
       return;
     }
 
-    // Navigate to checkout with document info
-    navigate(`/checkout?type=document&id=${document?.id}`);
+    if (!document) return;
+
+    // Generate order ID and show payment dialog
+    const orderId = `DOC${Date.now().toString().slice(-9)}`;
+    setCurrentOrderId(orderId);
+    setShowPaymentDialog(true);
+  };
+
+  const handlePaymentConfirmed = async () => {
+    if (!user || !document) return;
+
+    // Record the purchase in the database
+    const { error } = await supabase
+      .from("purchased_documents")
+      .insert({
+        user_id: user.id,
+        document_id: document.id,
+        price: document.price || 0,
+        payment_method: "bank_transfer",
+      });
+
+    if (error) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể xác nhận thanh toán. Vui lòng liên hệ hỗ trợ.",
+        variant: "destructive",
+      });
+      console.error("Purchase error:", error);
+      return;
+    }
+
+    setHasPurchased(true);
+    toast({
+      title: "Thanh toán thành công! 🎉",
+      description: "Bạn có thể tải tài liệu ngay bây giờ.",
+    });
+  };
+
+  const handleCancelPayment = () => {
+    setShowPaymentDialog(false);
+    setCurrentOrderId("");
+    toast({
+      title: "Đã hủy thanh toán",
+      description: "Bạn có thể thử lại bất cứ lúc nào.",
+    });
   };
 
   if (loading) {
@@ -357,13 +404,22 @@ const DocumentDetail = () => {
                       </p>
                     </div>
 
+                    {/* Price Display */}
+                    {document.price > 0 && (
+                      <div className="text-center py-2">
+                        <p className="text-2xl font-bold text-primary">
+                          {new Intl.NumberFormat("vi-VN").format(document.price)} đ
+                        </p>
+                      </div>
+                    )}
+
                     <Button
                       className="w-full"
                       size="lg"
                       onClick={handlePurchase}
                     >
                       <ShoppingCart className="w-5 h-5 mr-2" />
-                      Mua tài liệu
+                      Mua tài liệu ngay
                     </Button>
 
                     {!user && (
@@ -393,6 +449,19 @@ const DocumentDetail = () => {
             </Card>
           </div>
         </div>
+
+        {/* Payment Dialog */}
+        {document && (
+          <DocumentPaymentDialog
+            open={showPaymentDialog}
+            onOpenChange={setShowPaymentDialog}
+            orderId={currentOrderId}
+            amount={document.price || 50000}
+            documentTitle={document.title}
+            onPaymentConfirmed={handlePaymentConfirmed}
+            onCancelPayment={handleCancelPayment}
+          />
+        )}
       </main>
     </div>
   );
