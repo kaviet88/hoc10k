@@ -34,7 +34,7 @@ import {
 const navItems = [
   { icon: Home, label: "Trang chủ", href: "/" },
   { icon: BookOpen, label: "Bài học", href: "/lessons" },
-  { icon: GraduationCap, label: "Luyện thi", href: "/practice" },
+  { icon: GraduationCap, label: "Luyện thi", href: "/exams" },
   { icon: FileText, label: "Tài liệu", href: "/documents" },
   { icon: FileText, label: "Thi thử", href: "/exams" },
   { icon: ShoppingCart, label: "Mua chương trình", href: "/purchase", showBadge: true },

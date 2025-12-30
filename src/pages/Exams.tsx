@@ -190,7 +190,7 @@ const Exams = () => {
             {examTypes.map((exam) => (
               <div
                 key={exam.id}
-                onClick={() => navigate("/practice")}
+                onClick={() => navigate("/")}
                 className="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group hover:-translate-y-1"
               >
                 <div className="aspect-square overflow-hidden">

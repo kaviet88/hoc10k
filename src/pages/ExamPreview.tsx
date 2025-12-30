@@ -155,7 +155,7 @@ const ExamPreview = () => {
 
   const handleStartExam = () => {
     if (exam) {
-      navigate(`/practice?examId=${exam.id}&title=${encodeURIComponent(exam.title)}`);
+      navigate(`/practice/${exam.id}?title=${encodeURIComponent(exam.title)}`);
     }
   };
 
