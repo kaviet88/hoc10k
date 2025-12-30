@@ -758,6 +758,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_lesson_quiz_answer: {
+        Args: { p_question_id: string; p_user_answer: number }
+        Returns: {
+          correct_answer: number
+          explanation: string
+          is_correct: boolean
+          question_id: string
+          user_answer: number
+        }[]
+      }
       get_document_signed_url: {
         Args: { p_document_id: string }
         Returns: string
@@ -774,6 +784,15 @@ export type Database = {
           total_questions: number
           user_id: string
           user_name: string
+        }[]
+      }
+      get_lesson_quiz_questions: {
+        Args: { p_lesson_id: string; p_program_id: string }
+        Returns: {
+          id: string
+          options: Json
+          question: string
+          question_order: number
         }[]
       }
       get_practice_questions: {
