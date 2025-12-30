@@ -269,6 +269,45 @@ export type Database = {
         }
         Relationships: []
       }
+      news: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          content: string | null
+          thumbnail_url: string | null
+          category: string | null
+          view_count: number
+          is_published: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          content?: string | null
+          thumbnail_url?: string | null
+          category?: string | null
+          view_count?: number
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          content?: string | null
+          thumbnail_url?: string | null
+          category?: string | null
+          view_count?: number
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       practice_test_questions: {
         Row: {
           audio_url: string | null

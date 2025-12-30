@@ -16,7 +16,8 @@ import {
   LogOut,
   History,
   LayoutDashboard,
-  Shield
+  Shield,
+  Newspaper
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/contexts/CartContext";
@@ -35,7 +36,7 @@ const navItems = [
   { icon: BookOpen, label: "Bài học", href: "/lessons" },
   { icon: GraduationCap, label: "Luyện thi", href: "/exams" },
   { icon: FileText, label: "Tài liệu", href: "/documents" },
-  { icon: FileText, label: "Thi thử", href: "/exams" },
+  { icon: Newspaper, label: "Tin tức", href: "/news" },
   { icon: ShoppingCart, label: "Mua chương trình", href: "/purchase", showBadge: true },
 ];
 

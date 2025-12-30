@@ -4,12 +4,13 @@ import { Header } from "@/components/layout/Header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, ShieldAlert, Brain, HelpCircle, FileQuestion, BookOpen, FileText } from "lucide-react";
+import { Loader2, ShieldAlert, Brain, HelpCircle, FileQuestion, BookOpen, FileText, Newspaper } from "lucide-react";
 import { QuizManager } from "@/components/admin/QuizManager";
 import { MindMapManager } from "@/components/admin/MindMapManager";
 import { ExamQuestionManager } from "@/components/admin/ExamQuestionManager";
 import { LessonManager } from "@/components/admin/LessonManager";
 import { DocumentManager } from "@/components/admin/DocumentManager";
+import { NewsManager } from "@/components/admin/NewsManager";
 
 export default function Admin() {
   const { user, loading: authLoading } = useAuth();
@@ -56,7 +57,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="lessons" className="w-full">
-          <TabsList className="grid w-full max-w-3xl grid-cols-5">
+          <TabsList className="grid w-full max-w-4xl grid-cols-6">
             <TabsTrigger value="lessons" className="gap-2">
               <BookOpen className="w-4 h-4" />
               Khóa học
@@ -64,6 +65,10 @@ export default function Admin() {
             <TabsTrigger value="documents" className="gap-2">
               <FileText className="w-4 h-4" />
               Tài liệu
+            </TabsTrigger>
+            <TabsTrigger value="news" className="gap-2">
+              <Newspaper className="w-4 h-4" />
+              Tin tức
             </TabsTrigger>
             <TabsTrigger value="exam" className="gap-2">
               <FileQuestion className="w-4 h-4" />
@@ -85,6 +90,10 @@ export default function Admin() {
 
           <TabsContent value="documents" className="mt-6">
             <DocumentManager />
+          </TabsContent>
+
+          <TabsContent value="news" className="mt-6">
+            <NewsManager />
           </TabsContent>
 
           <TabsContent value="exam" className="mt-6">

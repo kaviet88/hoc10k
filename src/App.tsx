@@ -23,6 +23,8 @@ import Admin from "./pages/Admin";
 import Documents from "./pages/Documents";
 import DocumentDetail from "./pages/DocumentDetail";
 import MyDocuments from "./pages/MyDocuments";
+import News from "./pages/News";
+import NewsDetail from "./pages/NewsDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +56,8 @@ const App = () => (
               <Route path="/purchase-history" element={<PurchaseHistory />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/notifications" element={<Notifications />} />
+              <Route path="/news" element={<News />} />
+              <Route path="/news/:newsId" element={<NewsDetail />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/games" element={<Index />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
