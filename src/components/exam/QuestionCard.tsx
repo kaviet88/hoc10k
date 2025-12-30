@@ -20,10 +20,11 @@ export interface Question {
   image?: string;
   audioUrl?: string;
   options?: string[];
-  correctAnswer: string | number;
+  correctAnswer?: string | number; // Optional - only available after submission
   points: number;
   blanks?: { id: string; options: string[] }[];
   listeningBlanks?: { id: string; label: string; placeholder?: string }[];
+  explanation?: string; // Optional - only available after submission
 }
 
 interface QuestionCardProps {
