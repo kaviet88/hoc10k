@@ -37,6 +37,23 @@ interface UserPoints {
   last_check_in: string | null;
 }
 
+interface UserExam {
+  id: string;
+  title: string;
+  subject: string;
+  score: number | null;
+  completed_at: string | null;
+  test_id: string;
+}
+
+interface UserLesson {
+  id: string;
+  title: string;
+  thumbnail_url: string | null;
+  progress: number;
+  last_accessed: string;
+}
+
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const { itemCount } = useCart();
@@ -56,6 +73,8 @@ const Dashboard = () => {
     longest_streak: 0,
     last_check_in: null,
   });
+  const [userExams, setUserExams] = useState<UserExam[]>([]);
+  const [userLessons, setUserLessons] = useState<UserLesson[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -75,10 +94,83 @@ const Dashboard = () => {
           .eq("user_id", user.id),
       ]);
 
-      setStats((prev) => ({
-        ...prev,
+      // Fetch user's exam attempts
+      const { data: examAttempts } = await supabase
+        .from("user_test_attempts")
+        .select(`
+          id,
+          test_id,
+          score_percent,
+          completed_at,
+          test_title,
+          practice_tests (
+            title,
+            subject
+          )
+        `)
+        .eq("user_id", user.id)
+        .order("completed_at", { ascending: false })
+        .limit(5);
+
+      if (examAttempts) {
+        const exams: UserExam[] = examAttempts.map((attempt) => ({
+          id: attempt.id,
+          test_id: attempt.test_id || "",
+          title: (attempt.practice_tests as { title: string; subject: string } | null)?.title || attempt.test_title || "Đề thi",
+          subject: (attempt.practice_tests as { title: string; subject: string } | null)?.subject || "",
+          score: attempt.score_percent,
+          completed_at: attempt.completed_at,
+        }));
+        setUserExams(exams);
+      }
+
+      // Fetch user's purchased lessons
+      const { data: purchasedLessons } = await supabase
+        .from("purchase_history")
+        .select("program_id, program_name, purchased_at")
+        .eq("user_id", user.id)
+        .eq("program_type", "Khóa học")
+        .order("purchased_at", { ascending: false })
+        .limit(5);
+
+      if (purchasedLessons) {
+        // Get lesson details
+        const lessonIds = purchasedLessons.map(p => p.program_id);
+        const { data: lessonDetails } = await supabase
+          .from("lessons")
+          .select("id, title, thumbnail_url")
+          .in("id", lessonIds);
+
+        const lessons: UserLesson[] = purchasedLessons.map((purchase) => {
+          const detail = lessonDetails?.find(l => l.id === purchase.program_id);
+          return {
+            id: purchase.program_id,
+            title: detail?.title || purchase.program_name,
+            thumbnail_url: detail?.thumbnail_url || null,
+            progress: 0,
+            last_accessed: purchase.purchased_at,
+          };
+        });
+        setUserLessons(lessons);
+      }
+
+      // Count total exams and lessons
+      const { count: examCount } = await supabase
+        .from("user_test_attempts")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      const { count: lessonCount } = await supabase
+        .from("purchase_history")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("program_type", "Khóa học");
+
+      setStats({
+        totalLessons: lessonCount || 0,
+        totalExams: examCount || 0,
         purchasedCourses: purchaseRes.count || 0,
-      }));
+      });
 
       // Fetch user points
       const { data: pointsData } = await supabase
@@ -391,6 +483,125 @@ const Dashboard = () => {
                 <Clock className="w-4 h-4" />
                 Lịch sử điểm danh
               </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Exams and Lessons Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* User Exams */}
+          <Card className="shadow-card">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-foreground">Đề thi của bạn</h2>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="gap-1">
+                    <Clock className="w-4 h-4" />
+                    Lịch sử làm bài
+                  </Button>
+                  <Link to="/exams">
+                    <Button variant="outline" size="sm">
+                      Xem tất cả
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              {userExams.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                    <FileText className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground mb-4">Bạn chưa làm đề thi nào</p>
+                  <Link to="/exams">
+                    <Button variant="outline">Khám phá đề thi</Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {userExams.map((exam) => (
+                    <Link
+                      key={exam.id}
+                      to={`/exams/${exam.test_id}`}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground truncate">{exam.title}</p>
+                        <p className="text-sm text-muted-foreground">{exam.subject}</p>
+                      </div>
+                      {exam.score !== null && (
+                        <div className="text-right">
+                          <span className="text-lg font-bold text-primary">{exam.score}%</span>
+                        </div>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* User Lessons */}
+          <Card className="shadow-card">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-foreground">Bài học của bạn</h2>
+                <div className="flex gap-2">
+                  <Button variant="default" size="sm" className="gap-1">
+                    <Clock className="w-4 h-4" />
+                    Lịch sử học bài
+                  </Button>
+                  <Link to="/my-courses">
+                    <Button variant="default" size="sm">
+                      Xem tất cả
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              {userLessons.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                    <BookOpen className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground mb-4">Bạn chưa mua bài học nào</p>
+                  <Link to="/lessons">
+                    <Button variant="outline">Khám phá bài học</Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {userLessons.map((lesson) => (
+                    <Link
+                      key={lesson.id}
+                      to={`/lessons/${lesson.id}`}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      {lesson.thumbnail_url ? (
+                        <img
+                          src={lesson.thumbnail_url}
+                          alt={lesson.title}
+                          className="w-12 h-12 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center">
+                          <BookOpen className="w-6 h-6 text-accent" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground truncate">{lesson.title}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Progress value={lesson.progress} className="h-1.5 flex-1" />
+                          <span className="text-xs text-muted-foreground">{lesson.progress}%</span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
