@@ -758,6 +758,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_document_signed_url: {
+        Args: { p_document_id: string }
+        Returns: string
+      }
       get_exam_leaderboard: {
         Args: { exam_id: string; limit_count?: number }
         Returns: {
