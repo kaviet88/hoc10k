@@ -8,7 +8,6 @@ import {
   Home, 
   Menu, 
   ShoppingCart, 
-  Gamepad2, 
   Bell,
   User,
   ChevronDown,
@@ -38,7 +37,6 @@ const navItems = [
   { icon: FileText, label: "Tài liệu", href: "/documents" },
   { icon: FileText, label: "Thi thử", href: "/exams" },
   { icon: ShoppingCart, label: "Mua chương trình", href: "/purchase", showBadge: true },
-  { icon: Gamepad2, label: "Trò chơi", href: "/games" },
 ];
 
 export function Header() {
