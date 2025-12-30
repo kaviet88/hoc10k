@@ -133,16 +133,44 @@ const DocumentDetail = () => {
 
     setDownloading(true);
 
-    // Increment download count
-    await supabase.rpc("increment_document_download", { doc_id: document.id });
+    try {
+      // Get signed URL from edge function
+      const { data: signedUrlData, error: signedUrlError } = await supabase.functions.invoke(
+        "get-document-url",
+        {
+          body: { documentId: document.id },
+        }
+      );
 
-    // Open file URL in new tab or download
-    window.open(document.file_url, "_blank");
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+        console.error("Failed to get signed URL:", signedUrlError);
+        toast({
+          title: "Lỗi",
+          description: signedUrlData?.error || "Không thể tạo liên kết tải xuống",
+          variant: "destructive",
+        });
+        setDownloading(false);
+        return;
+      }
 
-    toast({
-      title: "Đang tải xuống",
-      description: "File đang được tải về...",
-    });
+      // Increment download count
+      await supabase.rpc("increment_document_download", { doc_id: document.id });
+
+      // Open signed URL in new tab
+      window.open(signedUrlData.signedUrl, "_blank");
+
+      toast({
+        title: "Đang tải xuống",
+        description: "File đang được tải về...",
+      });
+    } catch (error) {
+      console.error("Download error:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải tài liệu. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+    }
 
     setDownloading(false);
   };
@@ -407,7 +435,8 @@ const handlePurchase = () => {
                         variant="outline"
                         className="w-full"
                         size="lg"
-                        onClick={() => window.open(document.file_url!, "_blank")}
+                        onClick={handleDownload}
+                        disabled={downloading}
                       >
                         <ExternalLink className="w-5 h-5 mr-2" />
                         Mở trong tab mới
