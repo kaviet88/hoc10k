@@ -4,6 +4,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ChevronDown, ChevronUp, Filter } from "lucide-react";
 
+export interface FilterState {
+  priceFilter: string[];
+  ownershipFilter: string[];
+  gradeFilter: string[];
+  subjectFilter: string[];
+  contestFilter: string[];
+}
+
+interface FilterSidebarProps {
+  onFilterChange?: (filters: FilterState) => void;
+}
+
 interface FilterSectionProps {
   title: string;
   children: React.ReactNode;
@@ -50,7 +62,7 @@ function FilterCheckbox({ id, label, checked, onChange }: FilterCheckboxProps) {
   );
 }
 
-export function FilterSidebar() {
+export function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
   const [priceFilter, setPriceFilter] = useState<string[]>([]);
   const [ownershipFilter, setOwnershipFilter] = useState<string[]>([]);
   const [gradeFilter, setGradeFilter] = useState<string[]>([]);
@@ -62,6 +74,18 @@ export function FilterSidebar() {
       setArr(arr.filter(v => v !== value));
     } else {
       setArr([...arr, value]);
+    }
+  };
+
+  const handleApplyFilters = () => {
+    if (onFilterChange) {
+      onFilterChange({
+        priceFilter,
+        ownershipFilter,
+        gradeFilter,
+        subjectFilter,
+        contestFilter,
+      });
     }
   };
 
@@ -87,14 +111,14 @@ export function FilterSidebar() {
               size="xs"
               onClick={() => toggleFilter(priceFilter, setPriceFilter, "free")}
             >
-              Trả phí
+              Miễn phí
             </Button>
             <Button 
               variant={priceFilter.includes("paid") ? "default" : "outline"} 
               size="xs"
               onClick={() => toggleFilter(priceFilter, setPriceFilter, "paid")}
             >
-              Miễn phí
+              Trả phí
             </Button>
           </div>
         </FilterSection>
@@ -202,7 +226,7 @@ export function FilterSidebar() {
           </div>
         </FilterSection>
 
-        <Button variant="gradient" className="w-full mt-4">
+        <Button variant="gradient" className="w-full mt-4" onClick={handleApplyFilters}>
           Áp dụng bộ lọc
         </Button>
       </div>

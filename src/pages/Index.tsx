@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
-import { FilterSidebar } from "@/components/exams/FilterSidebar";
+import { FilterSidebar, FilterState } from "@/components/exams/FilterSidebar";
 import { ExamCard } from "@/components/exams/ExamCard";
 import { AITutorChat } from "@/components/chat/AITutorChat";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,13 @@ const Index = () => {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState<FilterState>({
+    priceFilter: [],
+    ownershipFilter: [],
+    gradeFilter: [],
+    subjectFilter: [],
+    contestFilter: [],
+  });
 
   useEffect(() => {
     fetchExams();
@@ -56,9 +63,49 @@ const Index = () => {
     setLoading(false);
   };
 
-  const filteredExams = exams.filter((exam) =>
-    exam.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredExams = exams.filter((exam) => {
+    // Search filter
+    if (searchQuery && !exam.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+
+    // Price filter (free/paid)
+    if (filters.priceFilter.length > 0 && !filters.priceFilter.includes("all")) {
+      if (filters.priceFilter.includes("free") && exam.is_premium) {
+        return false;
+      }
+      if (filters.priceFilter.includes("paid") && !exam.is_premium) {
+        return false;
+      }
+    }
+
+    // Grade filter
+    if (filters.gradeFilter.length > 0 && !filters.gradeFilter.includes("all")) {
+      if (exam.grade && !filters.gradeFilter.includes(`${exam.grade}`)) {
+        return false;
+      }
+    }
+
+    // Subject filter
+    if (filters.subjectFilter.length > 0 && !filters.subjectFilter.includes("all")) {
+      const subjectMap: Record<string, string> = {
+        "math": "Toán",
+        "english": "Tiếng Anh",
+        "vietnamese": "Tiếng Việt",
+        "chinese": "Tiếng Trung",
+      };
+      const matchingSubjects = filters.subjectFilter.map(s => subjectMap[s]).filter(Boolean);
+      if (matchingSubjects.length > 0 && !matchingSubjects.includes(exam.subject)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  const handleFilterChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
+  };
 
   const getBadgeColor = (subject: string): "primary" | "success" | "secondary" | "accent" => {
     return subjectBadgeColors[subject] || subjectBadgeColors["default"];
@@ -100,7 +147,7 @@ const Index = () => {
         {/* Main Content */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar */}
-          <FilterSidebar />
+          <FilterSidebar onFilterChange={handleFilterChange} />
 
           {/* Exam Grid */}
           <div className="flex-1">
