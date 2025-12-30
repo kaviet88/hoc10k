@@ -128,25 +128,43 @@ const MyDocuments = () => {
     setLoading(false);
   };
 
-  const handleDownload = async (fileUrl: string | null, docId: string) => {
-    if (!fileUrl) {
+  const handleDownload = async (docId: string) => {
+    try {
+      // Get signed URL from edge function
+      const { data: signedUrlData, error: signedUrlError } = await supabase.functions.invoke(
+        "get-document-url",
+        {
+          body: { documentId: docId },
+        }
+      );
+
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+        console.error("Failed to get signed URL:", signedUrlError);
+        toast({
+          title: "Lỗi",
+          description: signedUrlData?.error || "Không thể tạo liên kết tải xuống",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Increment download count
+      await supabase.rpc("increment_document_download" as any, { doc_id: docId });
+
+      window.open(signedUrlData.signedUrl, "_blank");
+
+      toast({
+        title: "Đang tải xuống",
+        description: "File đang được tải về...",
+      });
+    } catch (error) {
+      console.error("Download error:", error);
       toast({
         title: "Lỗi",
-        description: "Không tìm thấy file tài liệu",
+        description: "Không thể tải tài liệu. Vui lòng thử lại.",
         variant: "destructive",
       });
-      return;
     }
-
-    // Increment download count
-    await supabase.rpc("increment_document_download" as any, { doc_id: docId });
-
-    window.open(fileUrl, "_blank");
-
-    toast({
-      title: "Đang tải xuống",
-      description: "File đang được tải về...",
-    });
   };
 
   const filteredPurchased = purchasedDocuments.filter((p) =>
@@ -312,7 +330,7 @@ const MyDocuments = () => {
                           <div className="flex gap-2">
                             <Button
                               size="sm"
-                              onClick={() => handleDownload(item.document.file_url, item.document.id)}
+                              onClick={() => handleDownload(item.document.id)}
                               disabled={!item.document.file_url}
                             >
                               <Download className="w-4 h-4 mr-1" />
@@ -321,7 +339,7 @@ const MyDocuments = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => window.open(item.document.file_url!, "_blank")}
+                              onClick={() => handleDownload(item.document.id)}
                               disabled={!item.document.file_url}
                             >
                               <ExternalLink className="w-4 h-4" />
@@ -407,7 +425,7 @@ const MyDocuments = () => {
                           <div className="flex gap-2">
                             <Button
                               size="sm"
-                              onClick={() => handleDownload(doc.file_url, doc.id)}
+                              onClick={() => handleDownload(doc.id)}
                               disabled={!doc.file_url}
                             >
                               <Download className="w-4 h-4 mr-1" />
@@ -416,7 +434,7 @@ const MyDocuments = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => window.open(doc.file_url!, "_blank")}
+                              onClick={() => handleDownload(doc.id)}
                               disabled={!doc.file_url}
                             >
                               <ExternalLink className="w-4 h-4" />
