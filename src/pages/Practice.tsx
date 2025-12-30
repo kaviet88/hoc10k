@@ -79,12 +79,11 @@ const Practice = () => {
         return;
       }
 
-      // Fetch questions directly from practice_test_questions table
+      // SECURE: Use the RPC function that returns questions WITHOUT correct_answer
       const { data, error } = await supabase
-        .from("practice_test_questions")
-        .select("*")
-        .eq("test_id", examId)
-        .order("question_number", { ascending: true });
+        .rpc('get_practice_questions', {
+          p_test_id: examId
+        });
 
       if (error) {
         console.error("Error fetching questions:", error);
@@ -99,8 +98,16 @@ const Practice = () => {
         return;
       }
 
-      // Map database questions to Question type
-      const mappedQuestions: Question[] = data.map((q) => {
+      // Map database questions to Question type - NO correctAnswer until submission!
+      const mappedQuestions: Question[] = data.map((q: {
+        id: string;
+        question_number: number;
+        question_text: string;
+        question_type: string;
+        options: unknown;
+        audio_url: string | null;
+        listening_blanks: unknown;
+      }) => {
         const options = q.options as string[] | null;
         const listeningBlanks = q.listening_blanks as { id: string; label: string; placeholder: string }[] | null;
 
@@ -109,13 +116,11 @@ const Practice = () => {
           type: q.question_type as Question["type"],
           question: q.question_text,
           options: Array.isArray(options) ? options : undefined,
-          correctAnswer: q.question_type === "multiple_choice"
-            ? parseInt(q.correct_answer)
-            : q.correct_answer,
+          // NO correctAnswer field during the test - will be populated after submission
           points: 1,
           audioUrl: q.audio_url || undefined,
           listeningBlanks: listeningBlanks || undefined,
-          explanation: q.explanation || undefined,
+          // NO explanation during the test - will be populated after submission
         };
       });
 
