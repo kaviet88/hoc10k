@@ -9,8 +9,9 @@ interface QuizQuestion {
   id: string;
   question: string;
   options: string[];
-  correct_answer: number;
-  explanation: string | null;
+  // correct_answer and explanation are only available after checking
+  correct_answer?: number;
+  explanation?: string | null;
 }
 
 interface LessonQuizProps {
@@ -28,6 +29,7 @@ export const LessonQuiz = ({ lessonId, programId, lessonTitle }: LessonQuizProps
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [quizCompleted, setQuizCompleted] = useState(false);
+  const [checkingAnswer, setCheckingAnswer] = useState(false);
 
   useEffect(() => {
     fetchQuizData();
@@ -35,20 +37,24 @@ export const LessonQuiz = ({ lessonId, programId, lessonTitle }: LessonQuizProps
 
   const fetchQuizData = async () => {
     setLoading(true);
+    // SECURE: Use RPC function that returns questions WITHOUT correct_answer
     const { data, error } = await supabase
-      .from("lesson_quizzes")
-      .select("*")
-      .eq("lesson_id", lessonId)
-      .eq("program_id", programId)
-      .order("question_order");
+      .rpc('get_lesson_quiz_questions', {
+        p_lesson_id: lessonId,
+        p_program_id: programId
+      });
 
     if (data && !error) {
-      const formattedQuestions = data.map((q) => ({
+      const formattedQuestions = data.map((q: {
+        id: string;
+        question: string;
+        options: unknown;
+        question_order: number;
+      }) => ({
         id: q.id,
         question: q.question,
         options: q.options as string[],
-        correct_answer: q.correct_answer,
-        explanation: q.explanation,
+        // NO correct_answer until the user checks their answer
       }));
       setQuestions(formattedQuestions);
     }
@@ -60,7 +66,7 @@ export const LessonQuiz = ({ lessonId, programId, lessonTitle }: LessonQuizProps
     setSelectedAnswer(index);
   };
 
-  const handleSubmitAnswer = () => {
+  const handleSubmitAnswer = async () => {
     if (selectedAnswer === null) {
       toast({
         title: "Vui lòng chọn đáp án",
@@ -69,13 +75,46 @@ export const LessonQuiz = ({ lessonId, programId, lessonTitle }: LessonQuizProps
       return;
     }
 
-    const isCorrect = selectedAnswer === questions[currentQuestion].correct_answer;
-    if (isCorrect) {
-      setScore((prev) => prev + 1);
+    setCheckingAnswer(true);
+
+    // SECURE: Use RPC function to check answer and get correct_answer + explanation
+    const { data, error } = await supabase
+      .rpc('check_lesson_quiz_answer', {
+        p_question_id: questions[currentQuestion].id,
+        p_user_answer: selectedAnswer
+      });
+
+    if (error) {
+      console.error("Error checking answer:", error);
+      toast({
+        title: "Lỗi kiểm tra đáp án",
+        description: "Vui lòng thử lại",
+        variant: "destructive",
+      });
+      setCheckingAnswer(false);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      const result = data[0];
+      
+      // Update the current question with correct_answer and explanation
+      setQuestions((prev) =>
+        prev.map((q, idx) =>
+          idx === currentQuestion
+            ? { ...q, correct_answer: result.correct_answer, explanation: result.explanation }
+            : q
+        )
+      );
+
+      if (result.is_correct) {
+        setScore((prev) => prev + 1);
+      }
     }
 
     setAnswers((prev) => [...prev, selectedAnswer]);
     setShowResult(true);
+    setCheckingAnswer(false);
   };
 
   const handleNextQuestion = () => {
@@ -95,6 +134,8 @@ export const LessonQuiz = ({ lessonId, programId, lessonTitle }: LessonQuizProps
     setScore(0);
     setAnswers([]);
     setQuizCompleted(false);
+    // Re-fetch questions to clear correct_answer data
+    fetchQuizData();
   };
 
   if (loading) {
@@ -115,7 +156,7 @@ export const LessonQuiz = ({ lessonId, programId, lessonTitle }: LessonQuizProps
   }
 
   const currentQ = questions[currentQuestion];
-  const isCorrect = selectedAnswer === currentQ.correct_answer;
+  const isCorrect = showResult && currentQ.correct_answer !== undefined && selectedAnswer === currentQ.correct_answer;
   const percentage = Math.round((score / questions.length) * 100);
 
   if (quizCompleted) {
@@ -137,7 +178,8 @@ export const LessonQuiz = ({ lessonId, programId, lessonTitle }: LessonQuizProps
 
           <div className="flex items-center justify-center gap-2 flex-wrap">
             {answers.map((ans, index) => {
-              const isAnswerCorrect = ans === questions[index].correct_answer;
+              const q = questions[index];
+              const isAnswerCorrect = q.correct_answer !== undefined && ans === q.correct_answer;
               return (
                 <div
                   key={index}
@@ -173,12 +215,12 @@ export const LessonQuiz = ({ lessonId, programId, lessonTitle }: LessonQuizProps
           Câu {currentQuestion + 1}/{questions.length}
         </Badge>
         <div className="flex items-center gap-1">
-          {questions.map((_, index) => (
+          {questions.map((q, index) => (
             <div
               key={index}
               className={`w-2 h-2 rounded-full transition-colors ${
                 index < currentQuestion
-                  ? answers[index] === questions[index].correct_answer
+                  ? q.correct_answer !== undefined && answers[index] === q.correct_answer
                     ? "bg-success"
                     : "bg-destructive"
                   : index === currentQuestion
@@ -201,10 +243,10 @@ export const LessonQuiz = ({ lessonId, programId, lessonTitle }: LessonQuizProps
         <div className="space-y-3">
           {currentQ.options.map((option, index) => {
             const isSelected = selectedAnswer === index;
-            const isCorrectAnswer = index === currentQ.correct_answer;
+            const isCorrectAnswer = showResult && currentQ.correct_answer !== undefined && index === currentQ.correct_answer;
             let optionClass = "border-border hover:border-primary/50 hover:bg-primary/5";
 
-            if (showResult) {
+            if (showResult && currentQ.correct_answer !== undefined) {
               if (isCorrectAnswer) {
                 optionClass = "border-success bg-success/10";
               } else if (isSelected && !isCorrectAnswer) {
@@ -218,7 +260,7 @@ export const LessonQuiz = ({ lessonId, programId, lessonTitle }: LessonQuizProps
               <button
                 key={index}
                 onClick={() => handleSelectAnswer(index)}
-                disabled={showResult}
+                disabled={showResult || checkingAnswer}
                 className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left ${optionClass}`}
               >
                 <div
@@ -287,8 +329,20 @@ export const LessonQuiz = ({ lessonId, programId, lessonTitle }: LessonQuizProps
       {/* Action Buttons */}
       <div className="flex justify-center">
         {!showResult ? (
-          <Button variant="gradient" onClick={handleSubmitAnswer} className="px-8">
-            Kiểm tra đáp án
+          <Button 
+            variant="gradient" 
+            onClick={handleSubmitAnswer} 
+            className="px-8"
+            disabled={checkingAnswer}
+          >
+            {checkingAnswer ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Đang kiểm tra...
+              </>
+            ) : (
+              "Kiểm tra đáp án"
+            )}
           </Button>
         ) : (
           <Button variant="gradient" onClick={handleNextQuestion} className="gap-2 px-8">
