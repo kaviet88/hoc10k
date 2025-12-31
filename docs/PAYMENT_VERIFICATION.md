@@ -46,6 +46,14 @@ supabase secrets set CASSO_API_KEY="your-casso-api-key"
 supabase secrets set SEPAY_API_KEY="your-sepay-api-key"
 ```
 
+**For detailed setup instructions, see: [`supabase/SECRETS_SETUP.md`](../supabase/SECRETS_SETUP.md)**
+
+**Quick setup with PowerShell:**
+```powershell
+cd supabase
+.\setup-secrets.ps1 -BankProvider "casso" -CassoApiKey "your-api-key"
+```
+
 ### 3. Deploy Edge Functions
 
 ```bash

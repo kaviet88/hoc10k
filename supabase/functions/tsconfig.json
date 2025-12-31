@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
-    "lib": ["ESNext", "DOM"],
+    "lib": ["ESNext", "DOM", "deno.ns"],
     "allowJs": true,
     "checkJs": false,
     "strict": false,
@@ -10,12 +10,13 @@
     "strictNullChecks": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "types": []
+    "types": ["https://deno.land/x/types/index.d.ts"],
+    "noEmit": true
   },
   "include": ["./**/*.ts"],
   "exclude": ["node_modules"]
