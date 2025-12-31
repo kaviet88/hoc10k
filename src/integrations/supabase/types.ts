@@ -308,6 +308,51 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_orders: {
+        Row: {
+          amount: number
+          created_at: string
+          expire_at: string
+          id: string
+          order_data: Json
+          order_id: string
+          order_type: string
+          payment_content: string
+          status: string
+          transaction_id: string | null
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          expire_at?: string
+          id?: string
+          order_data?: Json
+          order_id: string
+          order_type?: string
+          payment_content: string
+          status?: string
+          transaction_id?: string | null
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          expire_at?: string
+          id?: string
+          order_data?: Json
+          order_id?: string
+          order_type?: string
+          payment_content?: string
+          status?: string
+          transaction_id?: string | null
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       practice_test_questions: {
         Row: {
           audio_url: string | null
