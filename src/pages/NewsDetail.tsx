@@ -6,6 +6,7 @@ import { ArrowLeft, Eye, Calendar, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import DOMPurify from "dompurify";
 
 interface NewsDetail {
   id: string;
@@ -33,11 +34,11 @@ const NewsDetail = () => {
   const fetchNewsDetail = async () => {
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("news")
+    const { data, error } = await (supabase
+      .from("news" as any)
       .select("*")
       .eq("id", newsId)
-      .single();
+      .single() as any);
 
     if (error) {
       console.error("Error fetching news:", error);
@@ -47,7 +48,7 @@ const NewsDetail = () => {
         variant: "destructive",
       });
     } else {
-      setNews(data);
+      setNews(data as NewsDetail);
     }
     setLoading(false);
   };
@@ -164,11 +165,16 @@ const NewsDetail = () => {
               </p>
             )}
 
-            {/* Content */}
+            {/* Content - Sanitized for XSS protection */}
             {news.content ? (
               <div
                 className="prose prose-lg max-w-none dark:prose-invert"
-                dangerouslySetInnerHTML={{ __html: news.content }}
+                dangerouslySetInnerHTML={{ 
+                  __html: DOMPurify.sanitize(news.content, {
+                    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'code', 'pre', 'div', 'span'],
+                    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'target', 'rel']
+                  })
+                }}
               />
             ) : (
               <p className="text-muted-foreground">Nội dung đang được cập nhật...</p>

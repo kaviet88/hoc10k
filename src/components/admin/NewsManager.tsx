@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
 import {
   Plus,
   Trash2,
@@ -80,16 +81,16 @@ export function NewsManager() {
 
   const fetchNews = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("news")
+    const { data, error } = await (supabase
+      .from("news" as any)
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false }) as any);
 
     if (error) {
       toast.error("Không thể tải danh sách tin tức");
       console.error(error);
     } else {
-      setNews(data || []);
+      setNews((data as NewsItem[]) || []);
     }
     setLoading(false);
   };
@@ -123,10 +124,18 @@ export function NewsManager() {
 
     setSaving(true);
 
+    // Sanitize HTML content to prevent XSS attacks
+    const sanitizedContent = content.trim() 
+      ? DOMPurify.sanitize(content.trim(), {
+          ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'code', 'pre', 'div', 'span'],
+          ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'target', 'rel']
+        })
+      : null;
+
     const newsData = {
       title: title.trim(),
       description: description.trim() || null,
-      content: content.trim() || null,
+      content: sanitizedContent,
       thumbnail_url: thumbnailUrl.trim() || null,
       category: category || null,
       is_published: isPublished,
@@ -135,7 +144,7 @@ export function NewsManager() {
     try {
       if (editingNews) {
         const { error } = await supabase
-          .from("news")
+          .from("news" as any)
           .update(newsData)
           .eq("id", editingNews.id);
 
@@ -143,7 +152,7 @@ export function NewsManager() {
         toast.success("Đã cập nhật tin tức");
       } else {
         const { error } = await supabase
-          .from("news")
+          .from("news" as any)
           .insert(newsData);
 
         if (error) throw error;
@@ -164,7 +173,7 @@ export function NewsManager() {
     if (!confirm("Bạn có chắc muốn xóa tin tức này?")) return;
 
     const { error } = await supabase
-      .from("news")
+      .from("news" as any)
       .delete()
       .eq("id", id);
 

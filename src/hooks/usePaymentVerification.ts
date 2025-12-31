@@ -55,8 +55,8 @@ export const usePaymentVerification = ({
         throw new Error("User not authenticated");
       }
 
-      const { data, error } = await supabase
-        .from('pending_orders')
+      const { data, error } = await (supabase
+        .from('pending_orders' as any)
         .insert({
           order_id: orderId,
           user_id: user.id,
@@ -67,7 +67,7 @@ export const usePaymentVerification = ({
           status: 'pending',
         })
         .select()
-        .single();
+        .single() as any);
 
       if (error) {
         // If order already exists, that's fine
