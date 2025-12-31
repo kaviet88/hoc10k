@@ -202,8 +202,8 @@ export function LessonManager() {
     }
 
     if (error) {
-      toast.error(`Lỗi khi ${editingLesson ? "cập nhật" : "thêm"} khóa học`);
-      console.error(error);
+      toast.error(`Lỗi khi ${editingLesson ? "cập nhật" : "thêm"} khóa học: ${error.message}`);
+      console.error("Save error:", error);
     } else {
       toast.success(`${editingLesson ? "Cập nhật" : "Thêm"} khóa học thành công`);
       setDialogOpen(false);
