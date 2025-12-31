@@ -128,9 +128,22 @@ export const usePaymentVerification = ({
       setCheckCount(prev => prev + 1);
       setLastCheckTime(new Date());
 
-      const { data: { session } } = await supabase.auth.getSession();
+      // First try to refresh the session to ensure we have a valid token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error("Session error:", sessionError);
+        // Try to refresh the session
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          console.error("Failed to refresh session:", refreshError);
+          setStatus('error');
+          return false;
+        }
+      }
+
       if (!session) {
-        console.error("No session");
+        console.error("No session available");
         setStatus('error');
         return false;
       }
@@ -141,6 +154,40 @@ export const usePaymentVerification = ({
 
       if (response.error) {
         console.error("Verify payment error:", response.error);
+
+        // Check for auth-related errors
+        const errorMessage = response.error.message?.toLowerCase() || '';
+        const isAuthError = errorMessage.includes('jwt') ||
+                           errorMessage.includes('unauthorized') ||
+                           errorMessage.includes('401') ||
+                           response.error.status === 401;
+
+        if (isAuthError) {
+          // Try to refresh session and retry once
+          console.log("Auth error detected, attempting session refresh...");
+          const { error: refreshError } = await supabase.auth.refreshSession();
+          if (!refreshError) {
+            // Retry the request
+            const retryResponse = await supabase.functions.invoke('verify-payment', {
+              body: { orderId },
+            });
+            if (!retryResponse.error) {
+              // Process the retry response
+              const retryResult = retryResponse.data;
+              if (retryResult?.verified) {
+                setStatus('verified');
+                setIsPolling(false);
+                onVerified?.();
+                toast({
+                  title: "Thanh toán thành công!",
+                  description: "Đơn hàng của bạn đã được xác nhận.",
+                });
+                return true;
+              }
+            }
+          }
+        }
+
         setStatus('pending'); // Stay pending, don't error out
         return false;
       }

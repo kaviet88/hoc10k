@@ -11,6 +11,7 @@ import { ExamQuestionManager } from "@/components/admin/ExamQuestionManager";
 import { LessonManager } from "@/components/admin/LessonManager";
 import { DocumentManager } from "@/components/admin/DocumentManager";
 import { NewsManager } from "@/components/admin/NewsManager";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function Admin() {
   const { user, loading: authLoading } = useAuth();
@@ -85,27 +86,39 @@ export default function Admin() {
           </TabsList>
 
           <TabsContent value="lessons" className="mt-6">
-            <LessonManager />
+            <ErrorBoundary>
+              <LessonManager />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="documents" className="mt-6">
-            <DocumentManager />
+            <ErrorBoundary>
+              <DocumentManager />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="news" className="mt-6">
-            <NewsManager />
+            <ErrorBoundary>
+              <NewsManager />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="exam" className="mt-6">
-            <ExamQuestionManager />
+            <ErrorBoundary>
+              <ExamQuestionManager />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="quiz" className="mt-6">
-            <QuizManager />
+            <ErrorBoundary>
+              <QuizManager />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="mindmap" className="mt-6">
-            <MindMapManager />
+            <ErrorBoundary>
+              <MindMapManager />
+            </ErrorBoundary>
           </TabsContent>
         </Tabs>
       </main>

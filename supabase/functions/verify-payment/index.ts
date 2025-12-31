@@ -79,8 +79,24 @@ serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    if (authError) {
+      console.error("Auth error:", authError.message);
+      return new Response(JSON.stringify({
+        error: "Authentication failed",
+        message: authError.message,
+        code: 401
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!user) {
+      return new Response(JSON.stringify({
+        error: "Unauthorized",
+        message: "No user found",
+        code: 401
+      }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
