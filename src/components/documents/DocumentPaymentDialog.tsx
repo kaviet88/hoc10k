@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Copy, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Copy, Check, Loader2, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,12 +8,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { usePaymentVerification } from "@/hooks/usePaymentVerification";
 
 interface DocumentPaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   orderId: string;
   amount: number;
+  documentId: string;
   documentTitle: string;
   onPaymentConfirmed: () => void;
   onCancelPayment: () => void;
@@ -32,12 +34,47 @@ export const DocumentPaymentDialog = ({
   onOpenChange,
   orderId,
   amount,
+  documentId,
   documentTitle,
   onPaymentConfirmed,
   onCancelPayment,
 }: DocumentPaymentDialogProps) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+
+  // Payment verification hook with auto-polling
+  const {
+    status: verificationStatus,
+    isPolling,
+    startPolling,
+    cancelPayment: cancelVerification,
+    manualVerify,
+  } = usePaymentVerification({
+    orderId,
+    amount,
+    orderType: 'document',
+    orderData: { document_id: documentId, title: documentTitle },
+    onVerified: () => {
+      onPaymentConfirmed();
+      onOpenChange(false);
+    },
+    onCancelled: () => {
+      onCancelPayment();
+      onOpenChange(false);
+    },
+    onExpired: () => {
+      onCancelPayment();
+      onOpenChange(false);
+    },
+    pollingInterval: 5000, // Check every 5 seconds
+  });
+
+  // Start polling when dialog opens
+  useEffect(() => {
+    if (open && orderId && amount > 0 && documentId) {
+      startPolling();
+    }
+  }, [open, orderId, amount, documentId, startPolling]);
 
 
   const formatPrice = (price: number) => {
@@ -78,17 +115,22 @@ export const DocumentPaymentDialog = ({
   };
 
   const handleCancel = () => {
-    onCancelPayment();
-    onOpenChange(false);
+    cancelVerification();
   };
 
   const handleConfirmPayment = async () => {
     setConfirming(true);
-    // Simulate payment confirmation - in production, this would verify with bank API
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    onPaymentConfirmed();
-    setConfirming(false);
-    onOpenChange(false);
+    try {
+      const verified = await manualVerify();
+      if (verified) {
+        onPaymentConfirmed();
+        onOpenChange(false);
+      }
+    } catch (error) {
+      console.error("Payment confirmation error:", error);
+    } finally {
+      setConfirming(false);
+    }
   };
 
   return (
@@ -234,6 +276,18 @@ export const DocumentPaymentDialog = ({
                   </span>{" "}
                   và nội dung khi chuyển khoản.
                 </p>
+                {isPolling && (
+                  <p className="text-sm text-emerald-600 mt-2 flex items-center">
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Đang tự động kiểm tra thanh toán...
+                  </p>
+                )}
+                {verificationStatus === 'verifying' && (
+                  <p className="text-sm text-blue-600 mt-2 flex items-center">
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Đang xác minh thanh toán...
+                  </p>
+                )}
               </div>
             </div>
           </div>

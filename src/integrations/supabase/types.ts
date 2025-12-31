@@ -472,6 +472,96 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_orders: {
+        Row: {
+          id: string
+          order_id: string
+          user_id: string
+          amount: number
+          order_type: string
+          order_data: Json
+          payment_content: string
+          status: string
+          bank_transaction_id: string | null
+          verified_at: string | null
+          expires_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          order_id: string
+          user_id: string
+          amount: number
+          order_type: string
+          order_data: Json
+          payment_content: string
+          status?: string
+          bank_transaction_id?: string | null
+          verified_at?: string | null
+          expires_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          order_id?: string
+          user_id?: string
+          amount?: number
+          order_type?: string
+          order_data?: Json
+          payment_content?: string
+          status?: string
+          bank_transaction_id?: string | null
+          verified_at?: string | null
+          expires_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bank_transactions: {
+        Row: {
+          id: string
+          transaction_id: string
+          bank_code: string
+          account_number: string
+          amount: number
+          description: string | null
+          transaction_date: string
+          matched_order_id: string | null
+          raw_data: Json | null
+          processed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          transaction_id: string
+          bank_code: string
+          account_number: string
+          amount: number
+          description?: string | null
+          transaction_date: string
+          matched_order_id?: string | null
+          raw_data?: Json | null
+          processed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          transaction_id?: string
+          bank_code?: string
+          account_number?: string
+          amount?: number
+          description?: string | null
+          transaction_date?: string
+          matched_order_id?: string | null
+          raw_data?: Json | null
+          processed_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       purchase_history: {
         Row: {
           duration: string

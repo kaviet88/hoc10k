@@ -513,6 +513,7 @@ const handlePurchase = () => {
         onOpenChange={setShowPaymentDialog}
         orderId={currentOrderId}
         amount={document?.price || 50000}
+        documentId={document?.id || ""}
         documentTitle={document?.title || ""}
         onPaymentConfirmed={handlePaymentConfirmed}
         onCancelPayment={handleCancelPayment}

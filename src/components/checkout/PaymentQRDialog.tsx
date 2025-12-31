@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Copy, Check, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Copy, Check, Loader2, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,12 +8,22 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { usePaymentVerification } from "@/hooks/usePaymentVerification";
+
+interface CartItem {
+  id: string;
+  name: string;
+  type: string;
+  duration: string;
+  price: number;
+}
 
 interface PaymentQRDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   orderId: string;
   amount: number;
+  cartItems?: CartItem[];
   onCancelPayment: () => void;
   onPaymentConfirmed: () => Promise<void>;
 }
@@ -31,11 +41,46 @@ export const PaymentQRDialog = ({
   onOpenChange,
   orderId,
   amount,
+  cartItems = [],
   onCancelPayment,
   onPaymentConfirmed,
 }: PaymentQRDialogProps) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+
+  // Payment verification hook with auto-polling
+  const {
+    status: verificationStatus,
+    isPolling,
+    startPolling,
+    cancelPayment: cancelVerification,
+    manualVerify,
+  } = usePaymentVerification({
+    orderId,
+    amount,
+    orderType: 'cart',
+    orderData: { items: cartItems },
+    onVerified: async () => {
+      await onPaymentConfirmed();
+      onOpenChange(false);
+    },
+    onCancelled: () => {
+      onCancelPayment();
+      onOpenChange(false);
+    },
+    onExpired: () => {
+      onCancelPayment();
+      onOpenChange(false);
+    },
+    pollingInterval: 5000, // Check every 5 seconds
+  });
+
+  // Start polling when dialog opens
+  useEffect(() => {
+    if (open && orderId && amount > 0 && cartItems.length > 0) {
+      startPolling();
+    }
+  }, [open, orderId, amount, cartItems.length, startPolling]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN").format(price) + " đ";
@@ -76,15 +121,17 @@ export const PaymentQRDialog = ({
   };
 
   const handleCancel = () => {
-    onCancelPayment();
-    onOpenChange(false);
+    cancelVerification();
   };
 
   const handleConfirmPayment = async () => {
     setConfirming(true);
     try {
-      await onPaymentConfirmed();
-      onOpenChange(false);
+      const verified = await manualVerify();
+      if (verified) {
+        await onPaymentConfirmed();
+        onOpenChange(false);
+      }
     } catch (error) {
       console.error("Payment confirmation error:", error);
     } finally {
@@ -236,9 +283,20 @@ export const PaymentQRDialog = ({
                   <span className="font-bold text-foreground">
                     {formatPrice(amount)}
                   </span>{" "}
-                  và nội dung khi chuyển khoản. Vui lòng quét mã QR để thanh toán
-                  được tiến hành tự động.
+                  và nội dung khi chuyển khoản.
                 </p>
+                {isPolling && (
+                  <p className="text-sm text-emerald-600 mt-2 flex items-center">
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Đang tự động kiểm tra thanh toán...
+                  </p>
+                )}
+                {verificationStatus === 'verifying' && (
+                  <p className="text-sm text-blue-600 mt-2 flex items-center">
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Đang xác minh thanh toán...
+                  </p>
+                )}
               </div>
             </div>
           </div>

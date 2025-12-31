@@ -246,6 +246,13 @@ export const CartSidebar = ({
         onOpenChange={setShowPaymentQR}
         orderId={currentOrderId}
         amount={total}
+        cartItems={items.map(item => ({
+          id: item.id,
+          name: item.name,
+          type: item.type,
+          duration: item.duration,
+          price: item.price,
+        }))}
         onCancelPayment={handleCancelPayment}
         onPaymentConfirmed={handlePaymentConfirmed}
       />
