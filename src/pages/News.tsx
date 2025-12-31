@@ -30,7 +30,7 @@ const News = () => {
     setLoading(true);
 
     let query = supabase
-      .from("news")
+      .from("news" as any)
       .select("*");
 
     if (sortBy === "newest") {
@@ -41,12 +41,12 @@ const News = () => {
       query = query.order("view_count", { ascending: false });
     }
 
-    const { data, error } = await query;
+    const { data, error } = await (query as any);
 
     if (error) {
       console.error("Error fetching news:", error);
     } else {
-      setNews(data || []);
+      setNews((data as NewsItem[]) || []);
     }
     setLoading(false);
   };
@@ -65,11 +65,8 @@ const News = () => {
   };
 
   const handleNewsClick = async (newsItem: NewsItem) => {
-    // Increment view count
-    await supabase
-      .from("news")
-      .update({ view_count: (newsItem.view_count || 0) + 1 })
-      .eq("id", newsItem.id);
+    // Use RPC function to safely increment view count
+    await supabase.rpc('increment_news_view' as any, { news_id: newsItem.id });
 
     navigate(`/news/${newsItem.id}`);
   };

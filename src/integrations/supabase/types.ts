@@ -236,6 +236,45 @@ export type Database = {
         }
         Relationships: []
       }
+      news: {
+        Row: {
+          category: string | null
+          content: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_published: boolean
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          category?: string | null
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          category?: string | null
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -826,6 +865,7 @@ export type Database = {
         Returns: undefined
       }
       increment_document_view: { Args: { doc_id: string }; Returns: undefined }
+      increment_news_view: { Args: { news_id: string }; Returns: undefined }
       submit_test_answers: {
         Args: { p_answers: Json; p_attempt_id: string }
         Returns: {
