@@ -45,6 +45,16 @@ interface Lesson {
   thumbnail_url: string | null;
 }
 
+interface CourseInfo {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnail_url: string | null;
+  badge: string | null;
+  badge_color: string | null;
+  view_count: number | null;
+}
+
 interface GroupedLessons {
   day: number;
   lessons: Lesson[];
@@ -65,6 +75,7 @@ const LessonDetail = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [courseInfo, setCourseInfo] = useState<CourseInfo | null>(null);
   const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
   const [activeDay, setActiveDay] = useState<number | null>(null);
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
@@ -85,6 +96,25 @@ const LessonDetail = () => {
 
   const fetchLessons = async () => {
     const currentProgramId = programId || "1";
+
+    // Fetch course info from lessons table
+    const { data: courseData, error: courseError } = await supabase
+      .from("lessons")
+      .select("id, title, description, thumbnail_url, badge, badge_color, view_count")
+      .eq("program_id", currentProgramId)
+      .single();
+
+    if (courseData && !courseError) {
+      setCourseInfo({
+        id: courseData.id,
+        title: courseData.title,
+        description: courseData.description,
+        thumbnail_url: courseData.thumbnail_url,
+        badge: courseData.badge,
+        badge_color: courseData.badge_color,
+        view_count: courseData.view_count,
+      });
+    }
 
     // Fetch all lessons for this program
     const { data: lessonData, error: lessonError } = await supabase
@@ -250,7 +280,9 @@ const LessonDetail = () => {
         <div className="bg-card rounded-xl p-6 shadow-card mb-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">Tiếng Anh Movers 360 ngày</h1>
+              <h1 className="text-2xl font-bold text-foreground mb-2">
+                {courseInfo?.title || "Đang tải..."}
+              </h1>
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
@@ -258,21 +290,23 @@ const LessonDetail = () => {
                 </div>
                 <div className="flex items-center gap-1">
                   <Eye className="w-4 h-4" />
-                  <span>6276 lượt xem</span>
+                  <span>{courseInfo?.view_count || 0} lượt xem</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
                   <span>{Object.keys(groupedLessons).length} ngày học</span>
                 </div>
-                <Badge variant="secondary" className="bg-accent/20 text-accent">
-                  Tiếng Anh Cơ Bản
-                </Badge>
+                {courseInfo?.badge && (
+                  <Badge variant="secondary" className="bg-accent/20 text-accent">
+                    {courseInfo.badge}
+                  </Badge>
+                )}
               </div>
             </div>
             <div className="w-16 h-16 rounded-xl overflow-hidden shadow-card">
               <img 
-                src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=100" 
-                alt="Course"
+                src={courseInfo?.thumbnail_url || "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=100"}
+                alt={courseInfo?.title || "Course"}
                 className="w-full h-full object-cover"
               />
             </div>
