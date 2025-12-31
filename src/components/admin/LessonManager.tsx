@@ -20,7 +20,8 @@ import {
   BookOpen,
   Eye,
   MessageSquare,
-  Clock
+  Clock,
+  Video
 } from "lucide-react";
 import {
   Dialog,
@@ -44,12 +45,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { VideoUploader } from "./VideoUploader";
 
 interface Lesson {
   id: string;
   title: string;
   description: string | null;
   thumbnail_url: string | null;
+  video_url: string | null;
   price: number;
   original_price: number | null;
   duration: string;
@@ -84,6 +87,8 @@ export function LessonManager() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [price, setPrice] = useState(0);
   const [originalPrice, setOriginalPrice] = useState<number | null>(null);
   const [duration, setDuration] = useState("0 phút");
@@ -123,6 +128,8 @@ export function LessonManager() {
     setTitle("");
     setDescription("");
     setThumbnailUrl("");
+    setVideoUrl("");
+    setUploadingVideo(false);
     setPrice(0);
     setOriginalPrice(null);
     setDuration("0 phút");
@@ -140,6 +147,7 @@ export function LessonManager() {
     setTitle(lesson.title);
     setDescription(lesson.description || "");
     setThumbnailUrl(lesson.thumbnail_url || "");
+    setVideoUrl(lesson.video_url || "");
     setPrice(lesson.price);
     setOriginalPrice(lesson.original_price);
     setDuration(lesson.duration);
@@ -164,6 +172,7 @@ export function LessonManager() {
       title: title.trim(),
       description: description.trim() || null,
       thumbnail_url: thumbnailUrl.trim() || null,
+      video_url: videoUrl.trim() || null,
       price,
       original_price: originalPrice,
       duration,
@@ -270,6 +279,8 @@ export function LessonManager() {
         description?: string;
         thumbnail_url?: string;
         thumbnailUrl?: string;
+        video_url?: string;
+        videoUrl?: string;
         price?: number;
         original_price?: number;
         originalPrice?: number;
@@ -290,6 +301,7 @@ export function LessonManager() {
         title: item.title,
         description: item.description || null,
         thumbnail_url: item.thumbnail_url || item.thumbnailUrl || null,
+        video_url: item.video_url || item.videoUrl || null,
         price: item.price || 0,
         original_price: item.original_price || item.originalPrice || null,
         duration: item.duration || "0 phút",
@@ -442,6 +454,20 @@ export function LessonManager() {
                       )}
                     </div>
 
+                    <div className="grid gap-2">
+                      <Label className="flex items-center gap-2">
+                        <Video className="w-4 h-4" />
+                        Video bài học
+                      </Label>
+                      <VideoUploader
+                        value={videoUrl}
+                        onChange={setVideoUrl}
+                        onUploadStart={() => setUploadingVideo(true)}
+                        onUploadEnd={() => setUploadingVideo(false)}
+                        disabled={saving}
+                      />
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="price">Giá (VNĐ) *</Label>
@@ -560,13 +586,13 @@ export function LessonManager() {
                       <X className="w-4 h-4 mr-2" />
                       Hủy
                     </Button>
-                    <Button onClick={handleSave} disabled={saving}>
+                    <Button onClick={handleSave} disabled={saving || uploadingVideo}>
                       {saving ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
                         <Save className="w-4 h-4 mr-2" />
                       )}
-                      {editingLesson ? "Cập nhật" : "Thêm mới"}
+                      {uploadingVideo ? "Đang tải video..." : editingLesson ? "Cập nhật" : "Thêm mới"}
                     </Button>
                   </div>
                 </DialogContent>
@@ -640,7 +666,12 @@ export function LessonManager() {
                             />
                           )}
                           <div>
-                            <p className="font-medium line-clamp-1">{lesson.title}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium line-clamp-1">{lesson.title}</p>
+                              {lesson.video_url && (
+                                <Video className="w-4 h-4 text-primary flex-shrink-0" title="Có video" />
+                              )}
+                            </div>
                             {lesson.badge && (
                               <Badge
                                 variant="outline"
