@@ -42,6 +42,12 @@ const BANK_API_CONFIG = {
 
 const BANK_API_PROVIDER = Deno.env.get("BANK_API_PROVIDER") || "casso";
 
+// Test mode configuration - allows simulating payments without actual bank transfers
+// Set PAYMENT_TEST_MODE=true in Supabase secrets to enable
+const TEST_MODE = Deno.env.get("PAYMENT_TEST_MODE") === "true";
+// Delay in milliseconds before auto-verifying in test mode (simulates bank processing)
+const TEST_MODE_DELAY = parseInt(Deno.env.get("PAYMENT_TEST_MODE_DELAY") || "5000", 10);
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -166,6 +172,137 @@ serve(async (req) => {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Handle test mode simulate action - immediately verify payment
+    if (action === 'simulate' && TEST_MODE) {
+      console.log("TEST MODE: Simulating successful payment for order:", orderId);
+
+      // Update pending order as verified
+      await supabaseAdmin
+        .from('pending_orders')
+        .update({
+          status: 'verified',
+          bank_transaction_id: `TEST-${Date.now()}`,
+          verified_at: new Date().toISOString(),
+        })
+        .eq('id', pendingOrder.id);
+
+      // Process the order
+      const orderData = pendingOrder.order_data as OrderData;
+
+      if (pendingOrder.order_type === 'cart') {
+        const cartData = orderData as CartOrderData;
+        const purchases = cartData.items.map((item: CartItem) => ({
+          user_id: pendingOrder.user_id,
+          program_id: item.id,
+          program_type: item.type,
+          program_name: item.name,
+          duration: item.duration,
+          price: item.price,
+          payment_method: 'bank_transfer_test',
+        }));
+
+        await supabaseAdmin
+          .from('purchase_history')
+          .insert(purchases);
+      } else if (pendingOrder.order_type === 'document') {
+        const docData = orderData as DocumentOrderData;
+        await supabaseAdmin
+          .from('purchased_documents')
+          .insert({
+            user_id: pendingOrder.user_id,
+            document_id: docData.document_id,
+            price: pendingOrder.amount,
+            payment_method: 'bank_transfer_test',
+          });
+      }
+
+      return new Response(JSON.stringify({
+        verified: true,
+        status: 'verified',
+        message: 'TEST MODE: Payment simulated successfully',
+        testMode: true,
+        transactionId: `TEST-${Date.now()}`
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // In test mode, auto-verify after delay based on order creation time
+    if (TEST_MODE) {
+      const orderCreatedAt = new Date(pendingOrder.created_at).getTime();
+      const now = Date.now();
+      const elapsedMs = now - orderCreatedAt;
+
+      if (elapsedMs >= TEST_MODE_DELAY) {
+        console.log("TEST MODE: Auto-verifying payment after delay for order:", orderId);
+
+        // Auto-verify the payment
+        await supabaseAdmin
+          .from('pending_orders')
+          .update({
+            status: 'verified',
+            bank_transaction_id: `TEST-AUTO-${Date.now()}`,
+            verified_at: new Date().toISOString(),
+          })
+          .eq('id', pendingOrder.id);
+
+        // Process the order
+        const orderData = pendingOrder.order_data as OrderData;
+
+        if (pendingOrder.order_type === 'cart') {
+          const cartData = orderData as CartOrderData;
+          const purchases = cartData.items.map((item: CartItem) => ({
+            user_id: pendingOrder.user_id,
+            program_id: item.id,
+            program_type: item.type,
+            program_name: item.name,
+            duration: item.duration,
+            price: item.price,
+            payment_method: 'bank_transfer_test',
+          }));
+
+          await supabaseAdmin
+            .from('purchase_history')
+            .insert(purchases);
+        } else if (pendingOrder.order_type === 'document') {
+          const docData = orderData as DocumentOrderData;
+          await supabaseAdmin
+            .from('purchased_documents')
+            .insert({
+              user_id: pendingOrder.user_id,
+              document_id: docData.document_id,
+              price: pendingOrder.amount,
+              payment_method: 'bank_transfer_test',
+            });
+        }
+
+        return new Response(JSON.stringify({
+          verified: true,
+          status: 'verified',
+          message: 'TEST MODE: Payment auto-verified after delay',
+          testMode: true,
+          transactionId: `TEST-AUTO-${Date.now()}`
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } else {
+        // Not yet time to auto-verify, return pending with test mode info
+        const remainingMs = TEST_MODE_DELAY - elapsedMs;
+        return new Response(JSON.stringify({
+          verified: false,
+          status: 'pending',
+          message: `TEST MODE: Payment will auto-verify in ${Math.ceil(remainingMs / 1000)} seconds`,
+          testMode: true,
+          autoVerifyIn: Math.ceil(remainingMs / 1000)
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // Try to verify payment via bank API

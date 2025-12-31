@@ -10,6 +10,38 @@ This guide explains how to configure the required secrets for bank payment verif
 | `BANK_API_PROVIDER` | Bank API provider: `casso` or `sepay` | Yes |
 | `CASSO_API_KEY` | Casso API key (if using Casso) | Conditional |
 | `SEPAY_API_KEY` | SePay API key (if using SePay) | Conditional |
+| `PAYMENT_TEST_MODE` | Enable test mode: `true` or `false` | Optional |
+| `PAYMENT_TEST_MODE_DELAY` | Auto-verify delay in ms (default: 5000) | Optional |
+
+## Test Mode
+
+Test mode allows simulating successful payments without actual bank transfers. This is useful for development and testing.
+
+### Enable Test Mode
+
+```bash
+supabase secrets set PAYMENT_TEST_MODE="true"
+supabase secrets set PAYMENT_TEST_MODE_DELAY="5000"  # 5 seconds
+```
+
+### How Test Mode Works
+
+1. When enabled, the payment dialog shows "🧪 Chế độ thử nghiệm (Test Mode)"
+2. A "Mô phỏng thanh toán" (Simulate Payment) button appears
+3. Payments are automatically verified after the delay (default 5 seconds)
+4. No actual bank transfer is required
+
+### Disable Test Mode for Production
+
+```bash
+supabase secrets set PAYMENT_TEST_MODE="false"
+```
+
+Or simply remove the secret:
+
+```bash
+supabase secrets unset PAYMENT_TEST_MODE
+```
 
 ## Setup Instructions
 

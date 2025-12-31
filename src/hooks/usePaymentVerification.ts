@@ -58,6 +58,8 @@ export const usePaymentVerification = ({
   const [checkCount, setCheckCount] = useState(0);
   const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
   const [secondsUntilNextCheck, setSecondsUntilNextCheck] = useState(0);
+  const [isTestMode, setIsTestMode] = useState(false);
+  const [testModeAutoVerifyIn, setTestModeAutoVerifyIn] = useState<number | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const paymentContent = `Thanh toan ${orderId}`;
@@ -145,13 +147,25 @@ export const usePaymentVerification = ({
 
       const result = response.data;
 
+      // Track test mode status
+      if (result.testMode !== undefined) {
+        setIsTestMode(result.testMode);
+      }
+      if (result.autoVerifyIn !== undefined) {
+        setTestModeAutoVerifyIn(result.autoVerifyIn);
+      } else {
+        setTestModeAutoVerifyIn(null);
+      }
+
       if (result.verified) {
         setStatus('verified');
         setIsPolling(false);
         onVerified?.();
         toast({
-          title: "Thanh toán thành công!",
-          description: "Đơn hàng của bạn đã được xác nhận.",
+          title: result.testMode ? "Thanh toán thành công! (Test Mode)" : "Thanh toán thành công!",
+          description: result.testMode
+            ? "Đơn hàng đã được xác nhận trong chế độ thử nghiệm."
+            : "Đơn hàng của bạn đã được xác nhận.",
         });
         return true;
       } else if (result.status === 'cancelled') {
@@ -228,6 +242,68 @@ export const usePaymentVerification = ({
     setStatus('cancelled');
     onCancelled?.();
   }, [orderId, stopPolling, onCancelled]);
+
+  // Simulate payment (test mode only)
+  const simulatePayment = useCallback(async () => {
+    try {
+      setStatus('verifying');
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error("No session");
+        toast({
+          title: "Lỗi",
+          description: "Vui lòng đăng nhập lại.",
+          variant: "destructive",
+        });
+        setStatus('error');
+        return false;
+      }
+
+      const response = await supabase.functions.invoke('verify-payment', {
+        body: { orderId, action: 'simulate' },
+      });
+
+      if (response.error) {
+        console.error("Simulate payment error:", response.error);
+        toast({
+          title: "Lỗi",
+          description: "Không thể mô phỏng thanh toán. Test mode có thể chưa được bật.",
+          variant: "destructive",
+        });
+        setStatus('pending');
+        return false;
+      }
+
+      const result = response.data;
+
+      if (result.verified) {
+        setStatus('verified');
+        setIsPolling(false);
+        onVerified?.();
+        toast({
+          title: "Thanh toán thành công! (Test Mode)",
+          description: "Đơn hàng đã được xác nhận trong chế độ thử nghiệm.",
+        });
+        return true;
+      } else if (!result.testMode) {
+        toast({
+          title: "Test Mode chưa được bật",
+          description: "Vui lòng bật PAYMENT_TEST_MODE trên server.",
+          variant: "destructive",
+        });
+        setStatus('pending');
+        return false;
+      }
+
+      setStatus('pending');
+      return false;
+    } catch (error) {
+      console.error("Simulate payment error:", error);
+      setStatus('pending');
+      return false;
+    }
+  }, [orderId, onVerified]);
 
   // Manual verification trigger
   const manualVerify = useCallback(async () => {
@@ -333,10 +409,13 @@ export const usePaymentVerification = ({
     checkCount,
     lastCheckTime,
     secondsUntilNextCheck,
+    isTestMode,
+    testModeAutoVerifyIn,
     startPolling,
     stopPolling,
     cancelPayment,
     manualVerify,
+    simulatePayment,
   };
 };
 

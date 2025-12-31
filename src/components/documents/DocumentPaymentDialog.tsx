@@ -48,9 +48,12 @@ export const DocumentPaymentDialog = ({
     isPolling,
     checkCount,
     secondsUntilNextCheck,
+    isTestMode,
+    testModeAutoVerifyIn,
     startPolling,
     cancelPayment: cancelVerification,
     manualVerify,
+    simulatePayment,
   } = usePaymentVerification({
     orderId,
     amount,
@@ -315,6 +318,25 @@ export const DocumentPaymentDialog = ({
                     </p>
                   </div>
                 )}
+
+                {/* Test Mode Indicator */}
+                {isTestMode && (
+                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-amber-700 font-medium">
+                        🧪 Chế độ thử nghiệm (Test Mode)
+                      </p>
+                      {testModeAutoVerifyIn !== null && testModeAutoVerifyIn > 0 && (
+                        <span className="text-xs text-amber-600 bg-amber-100 px-2 py-1 rounded-full">
+                          Tự động xác nhận sau {testModeAutoVerifyIn}s
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-amber-600 mt-1">
+                      Thanh toán sẽ tự động được xác nhận mà không cần chuyển khoản thật.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -326,15 +348,25 @@ export const DocumentPaymentDialog = ({
               className="flex-1"
               onClick={handleCancel}
             >
-              Hủy thanh toán
+              H���y thanh toán
             </Button>
-            <Button
-              className="flex-1"
-              onClick={handleConfirmPayment}
-              disabled={confirming}
-            >
-              {confirming ? "Đang xác nhận..." : "Tôi đã thanh toán"}
-            </Button>
+            {isTestMode ? (
+              <Button
+                className="flex-1 bg-amber-500 hover:bg-amber-600"
+                onClick={simulatePayment}
+                disabled={confirming}
+              >
+                {confirming ? "Đang xác nhận..." : "🧪 Mô phỏng thanh toán"}
+              </Button>
+            ) : (
+              <Button
+                className="flex-1"
+                onClick={handleConfirmPayment}
+                disabled={confirming}
+              >
+                {confirming ? "Đang xác nhận..." : "Tôi đã thanh toán"}
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
