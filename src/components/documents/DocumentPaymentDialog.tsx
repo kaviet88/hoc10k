@@ -46,6 +46,8 @@ export const DocumentPaymentDialog = ({
   const {
     status: verificationStatus,
     isPolling,
+    checkCount,
+    secondsUntilNextCheck,
     startPolling,
     cancelPayment: cancelVerification,
     manualVerify,
@@ -276,17 +278,42 @@ export const DocumentPaymentDialog = ({
                   </span>{" "}
                   và nội dung khi chuyển khoản.
                 </p>
+
+                {/* Payment Verification Status */}
                 {isPolling && (
-                  <p className="text-sm text-emerald-600 mt-2 flex items-center">
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Đang tự động kiểm tra thanh toán...
-                  </p>
+                  <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center text-emerald-700">
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        <span className="text-sm font-medium">
+                          Đang tự động kiểm tra thanh toán
+                        </span>
+                      </div>
+                      <span className="text-xs text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full">
+                        Lần {checkCount}
+                      </span>
+                    </div>
+                    {secondsUntilNextCheck > 0 && verificationStatus !== 'verifying' && (
+                      <p className="text-xs text-emerald-600 mt-1">
+                        Kiểm tra tiếp sau {secondsUntilNextCheck} giây...
+                      </p>
+                    )}
+                    {verificationStatus === 'verifying' && (
+                      <p className="text-xs text-blue-600 mt-1 flex items-center">
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        Đang xác minh...
+                      </p>
+                    )}
+                  </div>
                 )}
-                {verificationStatus === 'verifying' && (
-                  <p className="text-sm text-blue-600 mt-2 flex items-center">
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Đang xác minh thanh toán...
-                  </p>
+
+                {verificationStatus === 'verified' && (
+                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-700 flex items-center">
+                      <Check className="w-4 h-4 mr-2" />
+                      Thanh toán đã được xác nhận!
+                    </p>
+                  </div>
                 )}
               </div>
             </div>

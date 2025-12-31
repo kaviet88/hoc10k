@@ -3,6 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { Json } from "@/integrations/supabase/types";
 
+// Type for pending order insert (table may not be in generated types yet)
+interface PendingOrderInsert {
+  order_id: string;
+  user_id: string;
+  amount: number;
+  order_type: string;
+  order_data: Json;
+  payment_content: string;
+  status: string;
+}
+
 // Order data types
 interface CartOrderData {
   items: Array<{
@@ -44,44 +55,66 @@ export const usePaymentVerification = ({
 }: UsePaymentVerificationOptions) => {
   const [status, setStatus] = useState<'idle' | 'pending' | 'verifying' | 'verified' | 'cancelled' | 'expired' | 'error'>('idle');
   const [isPolling, setIsPolling] = useState(false);
+  const [checkCount, setCheckCount] = useState(0);
+  const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
+  const [secondsUntilNextCheck, setSecondsUntilNextCheck] = useState(0);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const paymentContent = `Thanh toan ${orderId}`;
 
   // Create pending order in database
   const createPendingOrder = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.error("Auth error:", authError);
+        return false;
+      }
       if (!user) {
-        throw new Error("User not authenticated");
+        console.error("User not authenticated - no user returned");
+        return false;
       }
 
-      const { data, error } = await (supabase
-        .from('pending_orders' as any)
-        .insert({
-          order_id: orderId,
-          user_id: user.id,
-          amount,
-          order_type: orderType,
-          order_data: orderData as unknown as Json,
-          payment_content: paymentContent,
-          status: 'pending',
-        })
+      console.log("Creating order for user:", user.id);
+
+      const insertData: PendingOrderInsert = {
+        order_id: orderId,
+        user_id: user.id,
+        amount,
+        order_type: orderType,
+        order_data: orderData as unknown as Json,
+        payment_content: paymentContent,
+        status: 'pending',
+      };
+
+      console.log("Insert data:", JSON.stringify(insertData, null, 2));
+
+      // pending_orders table - using type assertion since it may not be in generated types
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from('pending_orders')
+        .insert(insertData)
         .select()
-        .single() as any);
+        .single();
 
       if (error) {
         // If order already exists, that's fine
         if (error.code === '23505') { // Unique violation
-          console.log("Order already exists");
+          console.log("Order already exists, continuing...");
           return true;
         }
-        throw error;
+        console.error("Database error:", error.message, error.code, error.details);
+        return false;
       }
 
-      console.log("Created pending order:", data);
+      console.log("Successfully created pending order:", data);
       return true;
     } catch (error) {
       console.error("Failed to create pending order:", error);
+      // Log more details about the error
+      if (error && typeof error === 'object') {
+        console.error("Error details:", JSON.stringify(error, null, 2));
+      }
       return false;
     }
   }, [orderId, amount, orderType, orderData, paymentContent]);
@@ -90,10 +123,14 @@ export const usePaymentVerification = ({
   const verifyPayment = useCallback(async () => {
     try {
       setStatus('verifying');
+      setCheckCount(prev => prev + 1);
+      setLastCheckTime(new Date());
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        throw new Error("No session");
+        console.error("No session");
+        setStatus('error');
+        return false;
       }
 
       const response = await supabase.functions.invoke('verify-payment', {
@@ -101,7 +138,9 @@ export const usePaymentVerification = ({
       });
 
       if (response.error) {
-        throw response.error;
+        console.error("Verify payment error:", response.error);
+        setStatus('pending'); // Stay pending, don't error out
+        return false;
       }
 
       const result = response.data;
@@ -136,7 +175,7 @@ export const usePaymentVerification = ({
       return false;
     } catch (error) {
       console.error("Payment verification error:", error);
-      setStatus('error');
+      setStatus('pending'); // Stay pending on network errors
       return false;
     }
   }, [orderId, onVerified, onCancelled, onExpired]);
@@ -148,12 +187,15 @@ export const usePaymentVerification = ({
     if (!created) {
       toast({
         title: "Lỗi",
-        description: "Không thể tạo đơn hàng. Vui lòng thử lại.",
+        description: "Không thể tạo đơn hàng. Vui lòng đăng nhập lại và thử lại.",
         variant: "destructive",
       });
       return;
     }
 
+    setCheckCount(0);
+    setLastCheckTime(null);
+    setSecondsUntilNextCheck(0);
     setStatus('pending');
     setIsPolling(true);
   }, [createPendingOrder]);
@@ -164,6 +206,10 @@ export const usePaymentVerification = ({
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
+    }
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
     }
   }, []);
 
@@ -202,21 +248,36 @@ export const usePaymentVerification = ({
         clearInterval(pollingRef.current);
         pollingRef.current = null;
       }
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
       return;
     }
 
     // Immediate first check
     verifyPayment();
+    setSecondsUntilNextCheck(Math.floor(pollingInterval / 1000));
 
     // Set up polling interval
     pollingRef.current = setInterval(() => {
       verifyPayment();
+      setSecondsUntilNextCheck(Math.floor(pollingInterval / 1000));
     }, pollingInterval);
+
+    // Set up countdown timer (updates every second)
+    countdownRef.current = setInterval(() => {
+      setSecondsUntilNextCheck(prev => Math.max(0, prev - 1));
+    }, 1000);
 
     return () => {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
+      }
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
       }
     };
   }, [isPolling, pollingInterval, verifyPayment]);
@@ -269,6 +330,9 @@ export const usePaymentVerification = ({
     status,
     isPolling,
     paymentContent,
+    checkCount,
+    lastCheckTime,
+    secondsUntilNextCheck,
     startPolling,
     stopPolling,
     cancelPayment,
