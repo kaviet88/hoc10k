@@ -114,8 +114,68 @@ GRANT SELECT, INSERT, UPDATE ON public.pending_orders TO authenticated;
 GRANT ALL ON public.pending_orders TO service_role;
 GRANT ALL ON public.bank_transactions TO service_role;
 
+-- =====================================================
+-- VIDEO STORAGE BUCKET FOR LESSON VIDEOS
+-- =====================================================
+
+-- Create videos storage bucket for lesson videos
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'videos',
+  'videos',
+  true,
+  524288000, -- 500MB limit
+  ARRAY['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime']::text[]
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 524288000,
+  allowed_mime_types = ARRAY['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime']::text[];
+
+-- Drop existing policies
+DROP POLICY IF EXISTS "Authenticated users can upload videos" ON storage.objects;
+DROP POLICY IF EXISTS "Anyone can view videos" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete videos" ON storage.objects;
+
+-- Create policy for authenticated users to upload videos
+CREATE POLICY "Authenticated users can upload videos"
+ON storage.objects
+FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'videos');
+
+-- Create policy for anyone to view videos (public bucket)
+CREATE POLICY "Anyone can view videos"
+ON storage.objects
+FOR SELECT
+TO public
+USING (bucket_id = 'videos');
+
+-- Create policy for authenticated users to delete their own videos
+CREATE POLICY "Users can delete videos"
+ON storage.objects
+FOR DELETE
+TO authenticated
+USING (bucket_id = 'videos');
+
+-- Ensure lessons table has video_url column
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+    AND table_name = 'lessons'
+    AND column_name = 'video_url'
+  ) THEN
+    ALTER TABLE public.lessons ADD COLUMN video_url TEXT;
+  END IF;
+END
+$$;
+
 -- Verify tables were created
 SELECT 'pending_orders created' as status, count(*) as row_count FROM public.pending_orders
 UNION ALL
-SELECT 'bank_transactions created', count(*) FROM public.bank_transactions;
+SELECT 'bank_transactions created', count(*) FROM public.bank_transactions
+UNION ALL
+SELECT 'videos bucket created', 1 FROM storage.buckets WHERE id = 'videos';
 

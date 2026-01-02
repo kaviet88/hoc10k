@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
-import { Upload, X, Video, Loader2, Check, AlertCircle, Link } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Upload, X, Video, Loader2, Check, AlertCircle, Link, StopCircle, Clock, FileVideo } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,8 @@ interface VideoUploaderProps {
   onChange: (url: string) => void;
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
+  onDurationDetected?: (duration: string) => void;
+  onThumbnailGenerated?: (thumbnailUrl: string) => void;
   disabled?: boolean;
   className?: string;
 }
@@ -25,6 +27,8 @@ export function VideoUploader({
   onChange,
   onUploadStart,
   onUploadEnd,
+  onDurationDetected,
+  onThumbnailGenerated,
   disabled = false,
   className,
 }: VideoUploaderProps) {
@@ -33,10 +37,123 @@ export function VideoUploader({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(value ? 'url' : 'upload');
+  const [uploadedFileName, setUploadedFileName] = useState<string>('');
+  const [uploadedFileSize, setUploadedFileSize] = useState<number>(0);
+  const [detectedDuration, setDetectedDuration] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const videoPreviewRef = useRef<HTMLVideoElement>(null);
 
   const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
   const ALLOWED_TYPES = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+
+  // Format bytes to human readable
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Format seconds to readable duration
+  const formatDuration = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+
+    if (hours > 0) {
+      return `${hours} giờ ${minutes} phút`;
+    } else if (minutes > 0) {
+      return `${minutes} phút ${secs} giây`;
+    } else {
+      return `${secs} giây`;
+    }
+  };
+
+  // Extract video metadata (duration)
+  const extractVideoMetadata = (file: File): Promise<{ duration: number }> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+
+      video.onloadedmetadata = () => {
+        URL.revokeObjectURL(video.src);
+        resolve({ duration: video.duration });
+      };
+
+      video.onerror = () => {
+        URL.revokeObjectURL(video.src);
+        reject(new Error('Could not read video metadata'));
+      };
+
+      video.src = URL.createObjectURL(file);
+    });
+  };
+
+  // Generate thumbnail from video
+  const generateThumbnail = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      video.preload = 'metadata';
+      video.muted = true;
+      video.playsInline = true;
+
+      video.onloadeddata = () => {
+        // Seek to 10% of the video or 1 second, whichever is smaller
+        video.currentTime = Math.min(video.duration * 0.1, 1);
+      };
+
+      video.onseeked = () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            // Upload thumbnail to storage
+            uploadThumbnail(blob).then(resolve).catch(reject);
+          } else {
+            reject(new Error('Could not generate thumbnail'));
+          }
+          URL.revokeObjectURL(video.src);
+        }, 'image/jpeg', 0.8);
+      };
+
+      video.onerror = () => {
+        URL.revokeObjectURL(video.src);
+        reject(new Error('Could not load video for thumbnail'));
+      };
+
+      video.src = URL.createObjectURL(file);
+    });
+  };
+
+  // Upload thumbnail to storage
+  const uploadThumbnail = async (blob: Blob): Promise<string> => {
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 8);
+    const fileName = `thumbnails/${timestamp}-${randomString}.jpg`;
+
+    const { data, error } = await supabase.storage
+      .from('videos')
+      .upload(fileName, blob, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: 'image/jpeg',
+      });
+
+    if (error) throw error;
+
+    const { data: urlData } = supabase.storage
+      .from('videos')
+      .getPublicUrl(data.path);
+
+    return urlData.publicUrl;
+  };
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -60,61 +177,138 @@ export function VideoUploader({
     setUploadStatus('uploading');
     setUploadProgress(0);
     setErrorMessage(null);
+    setUploadedFileName(file.name);
+    setUploadedFileSize(file.size);
     onUploadStart?.();
 
+    // Create abort controller for cancellation
+    abortControllerRef.current = new AbortController();
+
     try {
+      // Extract video metadata first
+      let videoDuration: number | null = null;
+      try {
+        const metadata = await extractVideoMetadata(file);
+        videoDuration = metadata.duration;
+        const durationStr = formatDuration(metadata.duration);
+        setDetectedDuration(durationStr);
+        onDurationDetected?.(durationStr);
+      } catch (metadataError) {
+        console.warn('Could not extract video metadata:', metadataError);
+      }
+
       // Generate unique filename
       const timestamp = Date.now();
       const randomString = Math.random().toString(36).substring(2, 8);
       const extension = file.name.split('.').pop() || 'mp4';
       const fileName = `videos/${timestamp}-${randomString}.${extension}`;
 
-      // Simulate progress for better UX (Supabase doesn't provide upload progress)
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return prev;
+      // Use XMLHttpRequest for progress tracking
+      const uploadPromise = new Promise<{ path: string }>((resolve, reject) => {
+        const { data: { session } } = supabase.auth.getSession() as any;
+
+        // Get the storage URL
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jxbicrhmwlxquyjhagcs.supabase.co';
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4Ymljcmhtd2x4cXV5amhhZ2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUxMzQ2MTgsImV4cCI6MjA1MDcxMDYxOH0.G_6_tF4cYyf5qXvRVBXUAdmM8Qv1gntdPbgUQFiLzZE';
+
+        const xhr = new XMLHttpRequest();
+        const url = `${supabaseUrl}/storage/v1/object/videos/${fileName}`;
+
+        xhr.open('POST', url);
+        xhr.setRequestHeader('Authorization', `Bearer ${supabaseKey}`);
+        xhr.setRequestHeader('x-upsert', 'false');
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(progress);
           }
-          return prev + 10;
-        });
-      }, 500);
+        };
 
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('videos')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              resolve({ path: response.Key || fileName });
+            } catch {
+              resolve({ path: fileName });
+            }
+          } else {
+            try {
+              const error = JSON.parse(xhr.responseText);
+              if (error.message?.includes('Bucket not found')) {
+                reject(new Error('Video storage chưa được cấu hình. Vui lòng chạy migration SQL.'));
+              } else {
+                reject(new Error(error.message || 'Upload failed'));
+              }
+            } catch {
+              reject(new Error('Upload failed with status: ' + xhr.status));
+            }
+          }
+        };
 
-      clearInterval(progressInterval);
+        xhr.onerror = () => {
+          reject(new Error('Network error occurred'));
+        };
 
-      if (error) {
-        // Check if bucket doesn't exist
-        if (error.message.includes('Bucket not found')) {
-          throw new Error('Video storage chưa được cấu hình. Vui lòng liên hệ admin.');
-        }
-        throw error;
-      }
+        xhr.onabort = () => {
+          reject(new Error('Upload cancelled'));
+        };
+
+        // Store xhr for potential cancellation
+        (abortControllerRef.current as any).xhr = xhr;
+
+        xhr.send(file);
+      });
+
+      const uploadResult = await uploadPromise;
 
       // Get public URL
       const { data: urlData } = supabase.storage
         .from('videos')
-        .getPublicUrl(data.path);
+        .getPublicUrl(uploadResult.path);
 
       setUploadProgress(100);
       setUploadStatus('success');
       onChange(urlData.publicUrl);
       toast.success('Tải video lên thành công!');
+
+      // Try to generate thumbnail in background
+      try {
+        const thumbnailUrl = await generateThumbnail(file);
+        onThumbnailGenerated?.(thumbnailUrl);
+        toast.success('Đã tạo thumbnail tự động!');
+      } catch (thumbError) {
+        console.warn('Could not generate thumbnail:', thumbError);
+      }
+
     } catch (error) {
       console.error('Upload error:', error);
       const message = error instanceof Error ? error.message : 'Lỗi khi tải video lên';
-      setErrorMessage(message);
-      setUploadStatus('error');
-      toast.error(message);
+
+      if (message !== 'Upload cancelled') {
+        setErrorMessage(message);
+        setUploadStatus('error');
+        toast.error(message);
+      } else {
+        setUploadStatus('idle');
+        setUploadProgress(0);
+        toast.info('Đã hủy tải lên');
+      }
     } finally {
+      abortControllerRef.current = null;
       onUploadEnd?.();
+    }
+  };
+
+  // Cancel upload
+  const cancelUpload = () => {
+    if (abortControllerRef.current) {
+      const xhr = (abortControllerRef.current as any).xhr;
+      if (xhr) {
+        xhr.abort();
+      }
+      abortControllerRef.current.abort();
     }
   };
 
@@ -167,6 +361,9 @@ export function VideoUploader({
     setUploadStatus('idle');
     setUploadProgress(0);
     setErrorMessage(null);
+    setUploadedFileName('');
+    setUploadedFileSize(0);
+    setDetectedDuration('');
   };
 
   const isValidVideoUrl = (url: string): boolean => {
@@ -243,14 +440,36 @@ export function VideoUploader({
             )}
 
             {uploadStatus === 'uploading' && (
-              <div className="space-y-4">
+              <div className="space-y-4 pointer-events-auto">
                 <Loader2 className="w-12 h-12 mx-auto text-primary animate-spin" />
                 <div>
                   <p className="text-sm font-medium">Đang tải lên...</p>
+                  {uploadedFileName && (
+                    <div className="flex items-center justify-center gap-2 mt-1 text-xs text-muted-foreground">
+                      <FileVideo className="w-3 h-3" />
+                      <span className="truncate max-w-[200px]">{uploadedFileName}</span>
+                      <span>({formatFileSize(uploadedFileSize)})</span>
+                    </div>
+                  )}
                   <Progress value={uploadProgress} className="mt-2 h-2" />
                   <p className="text-xs text-muted-foreground mt-1">
                     {uploadProgress}%
                   </p>
+                  {detectedDuration && (
+                    <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      Thời lượng: {detectedDuration}
+                    </p>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 gap-1"
+                    onClick={cancelUpload}
+                  >
+                    <StopCircle className="w-4 h-4" />
+                    Hủy tải lên
+                  </Button>
                 </div>
               </div>
             )}
@@ -260,9 +479,22 @@ export function VideoUploader({
                 <div className="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center">
                   <Check className="w-8 h-8 text-green-600" />
                 </div>
-                <p className="text-sm font-medium text-green-600">
-                  Tải lên thành công!
-                </p>
+                <div>
+                  <p className="text-sm font-medium text-green-600">
+                    Tải lên thành công!
+                  </p>
+                  {uploadedFileName && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {uploadedFileName} ({formatFileSize(uploadedFileSize)})
+                    </p>
+                  )}
+                  {detectedDuration && (
+                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {detectedDuration}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 

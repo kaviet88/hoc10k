@@ -11,6 +11,71 @@ The application supports multiple video hosting options:
 4. **YouTube/Vimeo** - Embed third-party videos
 5. **Custom CDN** - Any CDN provider (AWS CloudFront, Cloudflare, etc.)
 
+## 🚀 Direct Video Upload (Recommended for Quick Start)
+
+The application now includes a built-in video uploader that supports:
+
+### Features:
+- **Drag & Drop Upload** - Simply drag video files into the upload zone
+- **Real-time Progress** - Actual upload progress tracking with percentage
+- **Auto Duration Detection** - Automatically detects video duration and fills the form
+- **Auto Thumbnail Generation** - Creates thumbnail from video frame automatically
+- **Cancel Upload** - Cancel ongoing uploads at any time
+- **Multiple Formats** - Supports MP4, WebM, OGG, QuickTime (up to 500MB)
+
+### Setup Steps:
+
+1. **Run the SQL migration** in Supabase Dashboard → SQL Editor:
+   ```sql
+   -- Create videos storage bucket
+   INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+   VALUES (
+     'videos',
+     'videos',
+     true,
+     524288000, -- 500MB limit
+     ARRAY['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime']::text[]
+   )
+   ON CONFLICT (id) DO UPDATE SET
+     public = true,
+     file_size_limit = 524288000,
+     allowed_mime_types = ARRAY['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime']::text[];
+
+   -- Create upload policy
+   CREATE POLICY "Authenticated users can upload videos"
+   ON storage.objects FOR INSERT TO authenticated
+   WITH CHECK (bucket_id = 'videos');
+
+   -- Create view policy
+   CREATE POLICY "Anyone can view videos"
+   ON storage.objects FOR SELECT TO public
+   USING (bucket_id = 'videos');
+   ```
+
+   Or simply run the complete `RUN_THIS_SQL.sql` file which includes this setup.
+
+2. **Go to Admin Panel** → Quản lý Khóa học
+
+3. **Add or Edit a Lesson** → Use the "Tải lên" (Upload) tab in the Video section
+
+4. **Drag & Drop or Click** to select your video file
+
+### Upload Workflow:
+1. Select or drag video file
+2. Video metadata (duration) is extracted automatically
+3. Progress bar shows real upload progress
+4. On success, thumbnail is generated automatically
+5. Duration field is auto-filled
+6. Thumbnail URL is auto-filled (if empty)
+
+### Supported File Types:
+| Format | Extension | Max Size |
+|--------|-----------|----------|
+| MP4 | .mp4 | 500MB |
+| WebM | .webm | 500MB |
+| OGG | .ogg | 500MB |
+| QuickTime | .mov | 500MB |
+
 ## Quick Start
 
 ### Option 1: Supabase Storage (Simple, for testing)
@@ -168,4 +233,3 @@ supabase functions deploy video-upload
 - Check signed URL expiration
 - Verify access control settings
 - Check referer/hotlink protection
-

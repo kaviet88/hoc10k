@@ -464,6 +464,14 @@ export function LessonManager() {
                         onChange={setVideoUrl}
                         onUploadStart={() => setUploadingVideo(true)}
                         onUploadEnd={() => setUploadingVideo(false)}
+                        onDurationDetected={(detectedDuration) => {
+                          setDuration(detectedDuration);
+                        }}
+                        onThumbnailGenerated={(generatedThumbnail) => {
+                          if (!thumbnailUrl) {
+                            setThumbnailUrl(generatedThumbnail);
+                          }
+                        }}
                         disabled={saving}
                       />
                     </div>
