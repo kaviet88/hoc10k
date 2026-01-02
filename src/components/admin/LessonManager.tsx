@@ -669,7 +669,7 @@ export function LessonManager() {
                             <div className="flex items-center gap-2">
                               <p className="font-medium line-clamp-1">{lesson.title}</p>
                               {lesson.video_url && (
-                                <Video className="w-4 h-4 text-primary flex-shrink-0" title="Có video" />
+                                <Video className="w-4 h-4 text-primary flex-shrink-0" aria-label="Có video" />
                               )}
                             </div>
                             {lesson.badge && (
