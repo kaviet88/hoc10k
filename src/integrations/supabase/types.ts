@@ -200,6 +200,7 @@ export type Database = {
           program_id: string | null
           thumbnail_url: string | null
           title: string
+          video_url: string | null
           view_count: number | null
         }
         Insert: {
@@ -216,6 +217,7 @@ export type Database = {
           program_id?: string | null
           thumbnail_url?: string | null
           title: string
+          video_url?: string | null
           view_count?: number | null
         }
         Update: {
@@ -232,6 +234,7 @@ export type Database = {
           program_id?: string | null
           thumbnail_url?: string | null
           title?: string
+          video_url?: string | null
           view_count?: number | null
         }
         Relationships: []
