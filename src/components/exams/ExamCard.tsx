@@ -72,19 +72,19 @@ export function ExamCard({
         </h3>
 
         {/* Stats */}
-        <div className="flex items-center gap-3 text-sm text-muted-foreground mb-4">
-          <div className="flex items-center gap-1">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+          <div className="flex items-center gap-1.5">
             <FileText className="w-4 h-4" />
             <span>{examCount} đề thi</span>
           </div>
-          {participantCount && (
-            <div className="flex items-center gap-1">
+          {participantCount !== undefined && participantCount > 0 && (
+            <div className="flex items-center gap-1.5">
               <Users className="w-4 h-4" />
-              <span>{participantCount}</span>
+              <span>{participantCount.toLocaleString()}</span>
             </div>
           )}
           {duration && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <Clock className="w-4 h-4" />
               <span>{duration}</span>
             </div>
