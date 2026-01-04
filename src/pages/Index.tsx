@@ -20,6 +20,7 @@ interface Exam {
   grade: number | null;
   time_limit_minutes: number;
   exam_type: string | null;
+  thumbnail_url: string | null;
 }
 
 const subjectBadgeColors: Record<string, "primary" | "success" | "secondary" | "accent"> = {
@@ -170,7 +171,7 @@ const Index = () => {
                     <ExamCard
                       id={exam.id}
                       title={exam.title}
-                      thumbnail={`https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=300&fit=crop`}
+                      thumbnail={exam.thumbnail_url || `https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=300&fit=crop`}
                       examCount={exam.total_questions}
                       participantCount={exam.participant_count || 0}
                       isPremium={exam.is_premium || false}
