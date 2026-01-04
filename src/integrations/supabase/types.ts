@@ -418,6 +418,7 @@ export type Database = {
           participant_count: number | null
           rating: number | null
           subject: string
+          thumbnail_url: string | null
           time_limit_minutes: number
           title: string
           total_questions: number
@@ -433,6 +434,7 @@ export type Database = {
           participant_count?: number | null
           rating?: number | null
           subject: string
+          thumbnail_url?: string | null
           time_limit_minutes?: number
           title: string
           total_questions?: number
@@ -448,6 +450,7 @@ export type Database = {
           participant_count?: number | null
           rating?: number | null
           subject?: string
+          thumbnail_url?: string | null
           time_limit_minutes?: number
           title?: string
           total_questions?: number
