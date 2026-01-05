@@ -390,11 +390,11 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Payment verification error:", error);
     return new Response(JSON.stringify({
       error: "Verification failed",
-      message: error.message
+      message: error instanceof Error ? error.message : "Unknown error"
     }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
