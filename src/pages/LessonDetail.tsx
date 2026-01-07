@@ -43,6 +43,7 @@ interface Lesson {
   completed: boolean;
   video_url: string | null;
   thumbnail_url: string | null;
+  content: string | null;
 }
 
 interface CourseInfo {
@@ -145,7 +146,7 @@ const LessonDetail = () => {
 
     setCompletedLessonIds(completedIds);
 
-    const enrichedLessons = lessonData.map((lesson) => ({
+    const enrichedLessons = lessonData.map((lesson: any) => ({
       id: lesson.id,
       lesson_id: lesson.lesson_id,
       lesson_title: lesson.lesson_title,
@@ -155,6 +156,7 @@ const LessonDetail = () => {
       completed: completedIds.has(lesson.lesson_id),
       video_url: lesson.video_url,
       thumbnail_url: lesson.thumbnail_url,
+      content: lesson.content,
     }));
 
     setLessons(enrichedLessons);
@@ -509,60 +511,31 @@ const LessonDetail = () => {
                       </div>
                     </div>
 
-                    {/* Lesson Content Card */}
-                    <div className="rounded-xl overflow-hidden bg-gradient-to-br from-accent/10 to-success/10 p-4 mb-6">
-                      <div className="bg-card rounded-lg p-6 shadow-card">
-                        <h3 className="text-center text-lg font-bold text-primary mb-4">
-                          DANH TỪ ĐẾM ĐƯỢC & KHÔNG ĐẾM ĐƯỢC
-                        </h3>
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <div className="bg-accent/10 rounded-lg p-4">
-                            <h4 className="font-bold text-accent mb-3 text-center">Danh từ ĐẾM ĐƯỢC</h4>
-                            <div className="flex justify-center gap-4 mb-3">
-                              <div className="text-center">
-                                <span className="text-2xl">🍎</span>
-                                <p className="text-xs text-muted-foreground">1 apple</p>
-                              </div>
-                              <div className="text-center">
-                                <span className="text-2xl">📚</span>
-                                <p className="text-xs text-muted-foreground">2 books</p>
-                              </div>
-                              <div className="text-center">
-                                <span className="text-2xl">🐱</span>
-                                <p className="text-xs text-muted-foreground">3 cats</p>
-                              </div>
-                            </div>
-                            <ul className="text-sm space-y-1 text-muted-foreground">
-                              <li>• Đếm được bằng số</li>
-                              <li>• Có số ít - số nhiều</li>
-                              <li>• Dùng a / an</li>
-                            </ul>
-                          </div>
-                          <div className="bg-success/10 rounded-lg p-4">
-                            <h4 className="font-bold text-success mb-3 text-center">Danh từ KHÔNG ĐẾM ĐƯỢC</h4>
-                            <div className="flex justify-center gap-4 mb-3">
-                              <div className="text-center">
-                                <span className="text-2xl">💧</span>
-                                <p className="text-xs text-muted-foreground">water</p>
-                              </div>
-                              <div className="text-center">
-                                <span className="text-2xl">🥛</span>
-                                <p className="text-xs text-muted-foreground">milk</p>
-                              </div>
-                              <div className="text-center">
-                                <span className="text-2xl">🍚</span>
-                                <p className="text-xs text-muted-foreground">rice</p>
-                              </div>
-                            </div>
-                            <ul className="text-sm space-y-1 text-muted-foreground">
-                              <li>• Không đếm trực tiếp</li>
-                              <li>• Không có số nhiều</li>
-                              <li>• Không dùng a / an</li>
-                            </ul>
-                          </div>
+                    {/* Lesson Content Card - Dynamic from database */}
+                    {activeLesson?.content ? (
+                      <div className="rounded-xl overflow-hidden bg-gradient-to-br from-accent/10 to-success/10 p-4 mb-6">
+                        <div className="bg-card rounded-lg p-6 shadow-card">
+                          <div 
+                            className="prose prose-sm max-w-none dark:prose-invert
+                              prose-headings:text-foreground prose-headings:font-bold
+                              prose-p:text-muted-foreground prose-p:leading-relaxed
+                              prose-ul:text-muted-foreground prose-ol:text-muted-foreground
+                              prose-li:marker:text-primary
+                              prose-strong:text-foreground prose-strong:font-semibold
+                              prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
+                            dangerouslySetInnerHTML={{ __html: activeLesson.content }}
+                          />
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="rounded-xl overflow-hidden bg-gradient-to-br from-muted/50 to-muted/30 p-4 mb-6">
+                        <div className="bg-card rounded-lg p-6 shadow-card text-center">
+                          <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                          <p className="text-muted-foreground">Chưa có nội dung bài học</p>
+                          <p className="text-sm text-muted-foreground/70 mt-1">Nội dung sẽ được cập nhật sớm</p>
+                        </div>
+                      </div>
+                    )}
                   </TabsContent>
 
                   {/* Mind Map Tab */}
