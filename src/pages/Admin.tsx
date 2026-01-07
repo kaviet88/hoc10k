@@ -4,12 +4,13 @@ import { Header } from "@/components/layout/Header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, ShieldAlert, Brain, HelpCircle, FileQuestion, BookOpen, FileText, Newspaper, ClipboardList } from "lucide-react";
+import { Loader2, ShieldAlert, Brain, HelpCircle, FileQuestion, BookOpen, FileText, Newspaper, ClipboardList, ScrollText } from "lucide-react";
 import { QuizManager } from "@/components/admin/QuizManager";
 import { MindMapManager } from "@/components/admin/MindMapManager";
 import { ExamQuestionManager } from "@/components/admin/ExamQuestionManager";
 import { ExamManager } from "@/components/admin/ExamManager";
 import { LessonManager } from "@/components/admin/LessonManager";
+import { ProgramLessonManager } from "@/components/admin/ProgramLessonManager";
 import { DocumentManager } from "@/components/admin/DocumentManager";
 import { NewsManager } from "@/components/admin/NewsManager";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -59,10 +60,14 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="lessons" className="w-full">
-          <TabsList className="grid w-full max-w-5xl grid-cols-7">
+          <TabsList className="grid w-full max-w-6xl grid-cols-8">
             <TabsTrigger value="lessons" className="gap-2">
               <BookOpen className="w-4 h-4" />
               Khóa học
+            </TabsTrigger>
+            <TabsTrigger value="lesson-content" className="gap-2">
+              <ScrollText className="w-4 h-4" />
+              Nội dung
             </TabsTrigger>
             <TabsTrigger value="documents" className="gap-2">
               <FileText className="w-4 h-4" />
@@ -93,6 +98,12 @@ export default function Admin() {
           <TabsContent value="lessons" className="mt-6">
             <ErrorBoundary>
               <LessonManager />
+            </ErrorBoundary>
+          </TabsContent>
+
+          <TabsContent value="lesson-content" className="mt-6">
+            <ErrorBoundary>
+              <ProgramLessonManager />
             </ErrorBoundary>
           </TabsContent>
 
