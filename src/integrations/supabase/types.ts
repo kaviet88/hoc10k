@@ -486,6 +486,7 @@ export type Database = {
       }
       program_lessons: {
         Row: {
+          content: string | null
           created_at: string
           day_number: number | null
           duration_minutes: number
@@ -498,6 +499,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          content?: string | null
           created_at?: string
           day_number?: number | null
           duration_minutes?: number
@@ -510,6 +512,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          content?: string | null
           created_at?: string
           day_number?: number | null
           duration_minutes?: number
