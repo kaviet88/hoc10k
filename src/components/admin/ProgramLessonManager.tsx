@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,10 @@ import {
   EyeOff,
   Search,
   Code,
+  Upload,
+  Video,
+  Image as ImageIcon,
+  Copy,
 } from "lucide-react";
 import {
   Dialog,
@@ -42,6 +46,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 
 interface ProgramLesson {
   id: string;
@@ -73,6 +78,14 @@ export function ProgramLessonManager() {
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [content, setContent] = useState("");
   const [previewMode, setPreviewMode] = useState(false);
+
+  // Upload state
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadedMedia, setUploadedMedia] = useState<{ url: string; type: 'video' | 'image' }[]>([]);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -110,6 +123,8 @@ export function ProgramLessonManager() {
     setContent("");
     setPreviewMode(false);
     setEditingLesson(null);
+    setUploadedMedia([]);
+    setUploadProgress(0);
   }
 
   function openEditDialog(lesson: ProgramLesson) {
@@ -155,6 +170,138 @@ export function ProgramLessonManager() {
 
     setSaving(false);
   }
+
+  // Upload video to storage
+  async function handleVideoUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('video/')) {
+      toast.error("Vui lòng chọn file video");
+      return;
+    }
+
+    // Validate file size (max 100MB)
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error("Video không được vượt quá 100MB");
+      return;
+    }
+
+    setUploadingVideo(true);
+    setUploadProgress(0);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `videos/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('lesson-content')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('lesson-content')
+        .getPublicUrl(fileName);
+
+      const videoUrl = urlData.publicUrl;
+      setUploadedMedia(prev => [...prev, { url: videoUrl, type: 'video' }]);
+      toast.success("Tải video thành công!");
+      
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast.error("Lỗi tải video: " + error.message);
+    } finally {
+      setUploadingVideo(false);
+      setUploadProgress(0);
+      if (videoInputRef.current) {
+        videoInputRef.current.value = "";
+      }
+    }
+  }
+
+  // Upload image to storage
+  async function handleImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Vui lòng chọn file ảnh");
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Ảnh không được vượt quá 10MB");
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `images/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('lesson-content')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('lesson-content')
+        .getPublicUrl(fileName);
+
+      const imageUrl = urlData.publicUrl;
+      setUploadedMedia(prev => [...prev, { url: imageUrl, type: 'image' }]);
+      toast.success("Tải ảnh thành công!");
+      
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast.error("Lỗi tải ảnh: " + error.message);
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = "";
+      }
+    }
+  }
+
+  // Insert media into content
+  function insertMediaToContent(url: string, type: 'video' | 'image') {
+    let mediaHtml = '';
+    if (type === 'video') {
+      mediaHtml = `<div class="my-4 rounded-lg overflow-hidden">
+  <video controls class="w-full" poster="">
+    <source src="${url}" type="video/mp4" />
+    Trình duyệt không hỗ trợ video.
+  </video>
+</div>`;
+    } else {
+      mediaHtml = `<div class="my-4 flex justify-center">
+  <img src="${url}" alt="Hình minh họa" class="rounded-lg max-w-full h-auto" />
+</div>`;
+    }
+    setContent(prev => prev + '\n' + mediaHtml);
+    toast.success(`Đã chèn ${type === 'video' ? 'video' : 'ảnh'} vào nội dung`);
+  }
+
+  // Copy URL to clipboard
+  function copyToClipboard(url: string) {
+    navigator.clipboard.writeText(url);
+    toast.success("Đã sao chép URL");
+  }
+
 
   // Get unique program IDs for filter
   const programIds = [...new Set(lessons.map((l) => l.program_id))].sort();
@@ -395,6 +542,96 @@ export function ProgramLessonManager() {
                     placeholder="https://..."
                   />
                 </div>
+              </div>
+
+              {/* Media Upload Section */}
+              <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                <Label className="font-semibold">Tải lên Media</Label>
+                <div className="flex flex-wrap gap-3">
+                  {/* Video Upload */}
+                  <div>
+                    <input
+                      ref={videoInputRef}
+                      type="file"
+                      accept="video/*"
+                      onChange={handleVideoUpload}
+                      className="hidden"
+                      id="video-upload"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => videoInputRef.current?.click()}
+                      disabled={uploadingVideo}
+                    >
+                      {uploadingVideo ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Video className="w-4 h-4 mr-2" />
+                      )}
+                      {uploadingVideo ? "Đang tải..." : "Tải Video"}
+                    </Button>
+                  </div>
+
+                  {/* Image Upload */}
+                  <div>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={uploadingImage}
+                    >
+                      {uploadingImage ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <ImageIcon className="w-4 h-4 mr-2" />
+                      )}
+                      {uploadingImage ? "Đang tải..." : "Tải Ảnh"}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Uploaded Media List */}
+                {uploadedMedia.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Media đã tải lên:</p>
+                    <div className="grid gap-2">
+                      {uploadedMedia.map((media, idx) => (
+                        <div key={idx} className="flex items-center gap-2 p-2 bg-background rounded border">
+                          {media.type === 'video' ? (
+                            <Video className="w-4 h-4 text-blue-500" />
+                          ) : (
+                            <ImageIcon className="w-4 h-4 text-green-500" />
+                          )}
+                          <span className="text-xs truncate flex-1 font-mono">{media.url.split('/').pop()}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(media.url)}
+                            title="Sao chép URL"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => insertMediaToContent(media.url, media.type)}
+                          >
+                            Chèn
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Content Editor */}
